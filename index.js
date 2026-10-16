@@ -12,6 +12,10 @@ module.exports = app => {
     const values = ['status', 'action', 'limitingResource', 'message', 'reason', 'time', 'coverage'].map(key => ({ path: `${base}.${key}`, value: result[key] }));
     for (const [key, r] of Object.entries(result.resources)) {
       for (const field of ['status', 'action', 'reason', 'time']) values.push({ path: `${base}.resources.${key}.${field}`, value: r[field] });
+      if (key !== 'energy') {
+        for (const field of ['capacityM3', 'currentVolumeM3', 'availableVolumeM3', 'freeVolumeM3', 'levelRatio', 'complete', 'selectedTanks', 'volumeTanks']) values.push({ path: `${base}.resources.${key}.totals.${field}`, value: r.totals[field] });
+        values.push({ path: `${base}.resources.${key}.tanks`, value: r.tanks });
+      }
     }
     // Publish null durations to invalidate earlier estimates; never substitute zero.
     values.push({ path: `${base}.energyTime`, value: result.resources.energy?.time ?? null }, { path: `${base}.waterTime`, value: result.resources.freshwater?.time ?? null });
@@ -43,6 +47,7 @@ module.exports = app => {
     running = true;
     const base = prefix();
     app.handleMessage(plugin.id, { updates: [{ meta: ['time', 'energyTime', 'waterTime', ...Object.keys(modules).map(k => `resources.${k}.time`)].map(p => ({ path: `${base}.${p}`, value: { units: 's', description: 'Estimated duration; null when unavailable. Fuel engine time is excluded.' } })) }] });
+    app.handleMessage(plugin.id, { updates: [{ meta: Object.keys(modules).filter(k=>k !== 'energy').flatMap(k => ['capacityM3', 'currentVolumeM3', 'availableVolumeM3', 'freeVolumeM3', 'levelRatio'].map(field => ({ path: `${base}.resources.${k}.totals.${field}`, value: { units: field === 'levelRatio' ? 'ratio' : 'm3', description: field === 'levelRatio' ? 'Combined current volume divided by combined full capacity' : 'Combined tank volume in cubic metres; null if incomplete' } }))) }] });
     tick();
     timer = setInterval(tick, config.intervalSeconds * 1000);
   };

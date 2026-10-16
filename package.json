@@ -1,13 +1,39 @@
 {
   "name": "signalk-endurance",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Standalone vessel resource assessment for Signal K",
   "main": "index.js",
   "license": "MIT",
-  "engines": { "node": ">=18" },
-  "keywords": ["signalk-node-server-plugin", "signalk-category-utility", "signalk-webapp"],
-  "signalk": { "displayName": "Endurance", "appIcon": "./public/icon.svg" },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk-category-utility",
+    "signalk-webapp"
+  ],
+  "signalk": {
+    "displayName": "Endurance",
+    "appIcon": "./public/icon.svg"
+  },
   "signalk-plugin-enabled-by-default": false,
-  "files": ["index.js", "lib", "public", "README.md", "LICENSE", "docs"],
-  "scripts": { "test": "node --test test/*.test.js" }
+  "files": [
+    "index.js",
+    "lib",
+    "public",
+    "README.md",
+    "LICENSE",
+    "docs"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SCarns/signalk-endurance.git"
+  },
+  "homepage": "https://github.com/SCarns/signalk-endurance#readme",
+  "bugs": {
+    "url": "https://github.com/SCarns/signalk-endurance/issues"
+  }
 }

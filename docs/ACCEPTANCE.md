@@ -1,22 +1,25 @@
-# First milestone acceptance on a real Signal K server
+# Acceptance on a real Signal K server
 
-Local tests are complete; the following checks require the vessel server.
+Local tests use synthetic inputs. Complete these checks on the vessel server.
 
-1. Install the tarball, restart, enable Endurance in preview, and open its webapp.
-2. Confirm discovery shows the actual house SOC and tank paths. Disable absent
-   resources; explicitly choose among multiple tanks/banks. Verify input timestamps,
-   source labels, ratios, freshness windows, and reserve thresholds.
-3. Confirm preview status updates while existing Node-RED output stays unchanged.
-4. Compare known normal and low-resource readings. Use a separate test server for
-   synthetic values; don't inject fabricated readings onto the live vessel bus.
-5. Verify a stale selected source becomes UNKNOWN and its duration becomes null.
-   Confirm partial coverage is visible and no missing reading becomes zero.
-6. If using water consumption, confirm actual provider units and independently
-   calculate one expected volume/rate duration. Verify forecast freshness.
-7. Stop/restart Endurance; confirm no duplicate periodic updates and that no
-   notification is emitted while preview is enabled.
-8. Before live switch, disable Node-RED Endurance publishers. Test visual warning,
-   resolution, stale-data handling, stop/restart, and rollback deliberately.
+1. Install, restart, and enable Endurance in preview mode.
+2. Confirm discovery shows actual battery SOC and tank Level paths. Select the house
+   bank, disable absent systems, and add each tank to its system's Tanks list.
+3. Confirm full capacities and calibrated current-volume paths in m³. Independently
+   sum two known tank volumes and capacities, then compare Endurance totals. Test
+   unequal tank capacities to verify weighted percentages.
+4. Confirm freshwater combined-supply assessment and fuel/propane individual versus
+   combined settings match how your tanks are used. Confirm a nearly full holding
+   tank triggers attention even with other empty holding tanks.
+5. Verify a missing/stale selected volume makes the combined total null, never a
+   partial total shown as complete. Known per-tank warnings must remain visible.
+6. If using freshwater duration, verify provider units and independently calculate
+   total current volume / total consumption rate. Ensure a total is counted once.
+7. Stop/restart Endurance; confirm updates stop and resume without duplicate timers.
+   Confirm preview produces no notifications.
+8. Enable live publishing only after verification. Deliberately test warning,
+   resolution, stale-data behavior, and disabling the plugin. Use a separate test
+   server for fabricated sensor values.
 
-Record server version, source/provider versions, observed paths, expected and actual
-results, and any differences. Do not claim boat validation until these checks pass.
+Record server/provider versions, source paths, expected results, and actual results.
+Do not claim boat validation before these checks pass.
