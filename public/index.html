@@ -1,9 +1,27 @@
 <!doctype html>
-<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Endurance setup</title><link rel="icon" type="image/png" href="icon-64.png"><link rel="apple-touch-icon" href="icon.png">
-<style>body{font:17px system-ui;max-width:900px;margin:40px auto;padding:0 20px;color:#153041;background:#f4f8fa}h1{font-size:2.4rem}section{background:white;border:1px solid #c8d7df;border-radius:12px;padding:24px;margin:22px 0}button{font:inherit;padding:10px 20px}code{overflow-wrap:anywhere}li{margin:12px 0}.muted{color:#526674}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style>
-<h1>Stop watching gauges. Go sailing.</h1><p>Endurance isn't another gauge. It's the thing that watches the gauges so you don't have to.</p>
-<section><h2>1. Discover your resources</h2><p>Energy uses battery state of charge (SOC). Freshwater, fuel, propane, and holding tanks use tank level. A single source is selected automatically; choose a house bank or add multiple tanks in Plugin Config.</p><button id="refresh">Refresh discovery</button><p id="connection" role="status"></p><div id="sources"></div></section>
-<section><h2>Optional energy forecasts</h2><p>Energy Predictor adds forecast context to Endurance: a predicted deficit can trigger informational monitoring, and a predicted critical condition can prompt advance planning for charging. Measured SOC still determines current reserve urgency. With Energy Predictor installed and publishing, leave the forecast path blank for automatic discovery. Endurance continues to assess SOC when forecast data is unavailable.</p><p id="energy-integration">Refresh discovery to check for Energy Predictor status data.</p></section>
-<section><h2>2. Configure your tanks</h2><p>Open <strong>Server → Plugin Config → Endurance</strong>. For each system, add a Tanks entry for each tank you want to include. Enter its Level path. Endurance finds the corresponding full capacity and current volume, including calibrated volumes from other plugins. Choose Litres (default), US gallons, or Cubic metres in the Units for entered volumes dropdown in Plugin Config. Your choice is saved and applies to manually entered capacities and daily usage allowances. You can also enter capacity and volume paths explicitly; Signal K path values remain in m³. If no volume source exists, Endurance calculates current volume from level × capacity; this assumes level represents a volume fraction.</p><p>Totals include full capacity, current volume, and remaining space. Percentages are weighted by capacity. Missing tank volumes make the total unavailable rather than showing a partial sum as your entire supply.</p><p>Freshwater defaults to a combined-supply assessment. Fuel and propane default to individual-tank assessments; choose combined only if those tanks are usable as one supply. Holding tanks always keep individual alerts. Disable resources or tanks you do not use.</p><p>Freshwater days remaining is estimated from the combined supply. Endurance starts with your configured daily allowance per person (in your selected input units) and people aboard, then learns from settled total-volume changes. Switching tanks requires no configuration change. The estimate is labelled Default, Learning, or Learned. You can still select an external total consumption rate if preferred. Battery forecasts and measured duration are optional and discovered automatically when their fields are blank: the standard Energy Predictor status and time remaining for the selected battery bank. Explicit paths take precedence.</p><p>Save settings and return here to review each tank and the system totals.</p></section>
-<section><h2>3. Verify and enable</h2><p>Preview publishes assessments to <code>environment.endurancePreview</code>. Check the selected sources, totals, freshness, and reserve thresholds. When satisfied, enable live publishing to <code>environment.endurance</code> in Plugin Config. Enable visual notifications separately if desired.</p><h3>Freshwater days remaining</h3><p id="water-duration">Waiting for assessment…</p><h3>Current assessment</h3><pre id="assessment">Loading…</pre></section>
-<script src="setup.js"></script></html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#153041"><title>Endurance</title>
+<link rel="icon" type="image/png" href="icon-64.png"><link rel="apple-touch-icon" href="icon.png">
+<script src="theme.js"></script><link rel="stylesheet" href="dashboard.css"><link rel="stylesheet" href="themes.css">
+</head>
+<body>
+<div class="shell">
+<header class="masthead">
+  <div class="brand"><img src="icon.png" alt="" width="56" height="56"><div><h1>Endurance</h1><p>Stop watching gauges. Go sailing.</p></div></div>
+  <nav aria-label="Dashboard controls"><label class="unit-picker"><span>Volumes</span><select id="units" aria-label="Displayed volume units"><option value="litres">Litres</option><option value="gallons">US gallons</option><option value="m3">m³</option></select></label><button id="refresh" type="button">Refresh</button><a href="/admin/#/serverConfiguration/plugins/signalk-endurance">Settings</a><span class="theme-controls" role="group" aria-label="Display theme"><button id="theme" type="button" class="theme-control" aria-label="Change display theme">☾</button><button id="theme-auto" type="button" aria-pressed="true" title="Follow vessel day/night and navigation state">Auto</button></span></nav>
+</header>
+<main>
+  <section id="summary" class="summary tone-neutral" aria-labelledby="summary-title">
+    <div class="summary-copy"><p class="eyebrow" id="summary-label">YOUR BOAT, AT A GLANCE</p><h2 id="summary-title">Connecting to your boat…</h2><p id="summary-message">Waiting for the latest resource assessment.</p></div>
+    <div class="summary-meta"><span id="mode" class="mode" hidden>Preview</span><p id="coverage">—</p><p id="updated">Not yet updated</p></div>
+  </section>
+  <div id="connection" class="notice" role="status" aria-live="polite" hidden></div>
+  <section id="attention" class="attention" aria-label="Resources needing attention" hidden><h2>Needs your attention</h2><ul id="attention-list"></ul></section>
+  <section aria-labelledby="resources-title"><div class="section-heading"><h2 id="resources-title">Your resources</h2><span id="notification-note"></span></div><div id="resources" class="resources"></div></section>
+</main>
+<footer><span>Updates automatically</span><a href="https://github.com/SCarns/signalk-endurance#readme" target="_blank" rel="noopener noreferrer">Help &amp; documentation</a></footer>
+</div>
+<script src="view-model.js"></script><script src="dashboard.js"></script>
+</body></html>

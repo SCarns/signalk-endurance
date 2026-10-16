@@ -1,5 +1,13 @@
 # Release notes
 
+## 0.1.0-alpha.7
+
+- Replace setup prose with a responsive, one-page resource dashboard and alerts.
+- Show combined tank volumes, water duration and learning status, battery SOC and forecast.
+- Add remembered display units and manual theme icon and separate Auto button at the top right.
+- Auto follows vessel day/night mode, using Red during night sailing or motoring.
+- Neutralize stale or disconnected assessments and support read-only dashboard viewers.
+
 ## 0.1.0-alpha.6
 
 - Add the approved brass hourglass over open water as the app icon and browser icon,

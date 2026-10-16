@@ -23,16 +23,28 @@ npm install github:SCarns/signalk-endurance
 Or install a downloaded package with:
 
 ```sh
-npm install /absolute/path/signalk-endurance-0.1.0-alpha.6.tgz
+npm install /absolute/path/signalk-endurance-0.1.0-alpha.7.tgz
 ```
 
 Restart Signal K, enable **Endurance** in **Server → Plugin Config**, then open its
-webapp at `/signalk-endurance/`. Administrator login is required for its setup API.
+webapp at `/signalk-endurance/`. Configuration requires an administrator; the dashboard supports read-only viewers.
 For Docker, install inside the server container in its configuration directory.
 
 Requires Node.js 18+ and standard Signal K Node plugin APIs. This is an alpha tested
 locally with synthetic readings and package installation checks; onboard validation
 is still required.
+
+## Your dashboard
+
+See power, freshwater, fuel, propane, and holding tanks together, with current alerts,
+available supply, water duration, and expandable tank details. Settings opens Signal K
+plugin configuration; Help opens this documentation.
+
+The top-right icon cycles **Day → Night → Red**; a separate **Auto** button restores
+automatic selection. Your choice is remembered.
+Auto follows `environment.mode`: day uses Day; night uses Night, or Red when
+`navigation.state` is `sailing` or `motoring`. Missing day/night state uses Night.
+Displayed volume units are remembered separately from configuration input units.
 
 ## Configure your resources
 
@@ -147,8 +159,7 @@ The server's preferred-source model values are used.
 ## Optional estimates
 
 - **Energy Predictor integration:** its optional forecasts add deficit monitoring
-  and advance charging warnings to the measured-SOC assessment. Configuration and
-  setup explain the integration and show whether forecast status data is available.
+  and advance charging warnings to the measured-SOC assessment. Configuration explains the integration; the dashboard shows the available forecast.
   Leave `predictionPath` blank to discover
   `electrical.energy.prediction.status`, or enter a custom path. Healthy measured SOC plus
   `deficit` gives informational WATCH; forecast `critical` gives WARNING. Measured
@@ -160,8 +171,7 @@ The server's preferred-source model values are used.
   discovery. Multiple banks still require SOC selection; no duration is borrowed from
   another bank. All duration readings must be fresh numeric seconds.
   Device-specific infinite/240-hour sentinels are not inferred. Explicit paths stay
-  authoritative even when missing or stale. Discovery is retried each cycle, and the
-  setup page shows the selected paths and their freshness.
+  authoritative even when missing or stale. Discovery is retried each cycle, and the assessment API reports selected paths and their freshness.
 - **Freshwater duration:** internal boat-wide usage estimation is now included.
   No consumption plugin or active-tank selection is required. See below.
 
@@ -203,7 +213,7 @@ configured capacity starts new learning history.
   Disk errors are reported in assessment diagnostics; monitoring continues.
 
 Days to empty is combined current volume divided by estimated total daily use.
-The setup page displays days; Signal K publishes `time` in seconds and
+The dashboard displays days; Signal K publishes `time` in seconds and
 `consumptionRate` in m³/s. `rateSource` is `default`, `learning`, `learned`, `external`,
 or `unavailable`; `learning` diagnostics show progress and pause/exclusion reasons.
 Default/learning duration estimates do not trigger forecast-based intervention

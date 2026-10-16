@@ -47,3 +47,10 @@ Do not claim boat validation before these checks pass.
   physical capacity and usage. Learned rates should retain observation progress.
 - Verify existing Signal K capacity/current-volume paths are interpreted in m³
   regardless of the manual input selection.
+
+## Dashboard
+
+- Compare each displayed reading and alert with its published assessment.
+- Confirm Auto uses Day by day, Night at rest at night, and Red sailing/motoring at night.
+- Confirm manual themes, display units, and expanded tank details persist as expected.
+- Disconnect the dashboard and verify it stops presenting a current healthy assessment.

@@ -80,7 +80,9 @@ module.exports = app => {
     latest = null; discovery = {}; signature = null;
   };
   plugin.registerWithRouter = router => {
-    router.get('/assessment', (_req, res) => res.json({ running, assessment: latest }));
+    const viewer = typeof router.access === 'function' ? router.access('readonly') : router;
+    const modeValue=path=>{const leaf=app.getSelfPath?.(path);const value=leaf?.value??leaf;return typeof value==='string'?value:null;};
+    viewer.get('/assessment', (_req, res) => res.json({ running, assessment: latest, display: { volumeUnits: config?.inputVolumeUnits || 'litres', environmentMode: modeValue('environment.mode'), navigationState: modeValue('navigation.state'), intervalSeconds: config?.intervalSeconds || 10, preview: !config?.publishLive, notifications: !!config?.publishLive && !!config?.notifications } }));
     router.get('/discovery', (_req, res) => res.json({ running, candidates: discovery, configuration: config || null }));
   };
   return plugin;
