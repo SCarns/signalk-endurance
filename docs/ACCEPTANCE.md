@@ -23,3 +23,17 @@ Local tests use synthetic inputs. Complete these checks on the vessel server.
 
 Record server/provider versions, source paths, expected results, and actual results.
 Do not claim boat validation before these checks pass.
+
+## Internal freshwater learning
+
+- In preview, choose internal usage estimation and review the starting allowance and
+  crew count. Confirm the setup page labels the initial days estimate as Default.
+- Confirm one combined supply is used when switching tanks, with no path change.
+- Check pause/exclusion reasons during missing/stale readings, refills, transfers and
+  underway state. Manually pause during known transfers or filling.
+- Observe multiple settled daily usage intervals. Compare learned rate against actual
+  litres used and confirm at least the configured hours and three accepted intervals
+  before the label changes to Learned. Synthetic tests cannot replace this check.
+- Restart and confirm learned history survives, but no usage is attributed to the
+  offline interval. Confirm data-directory persistence is reported as disk.
+- Verify external-rate selection still works with the provider's actual units.

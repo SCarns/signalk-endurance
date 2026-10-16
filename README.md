@@ -16,7 +16,7 @@ From your Signal K configuration directory (usually `~/.signalk`):
 npm install github:SCarns/signalk-endurance
 ```
 
-Or install a downloaded package with `npm install /absolute/path/signalk-endurance-0.1.0-alpha.2.tgz`.
+Or install a downloaded package with `npm install /absolute/path/signalk-endurance-0.1.0-alpha.3.tgz`.
 Restart Signal K, enable **Endurance** in **Server → Plugin Config**, then open its
 webapp at `/signalk-endurance/`. Administrator login is required for its setup API.
 For Docker, install inside the server container in its configuration directory.
@@ -119,14 +119,58 @@ The server's preferred-source model values are used.
   low SOC takes priority. A missing forecast does not prevent SOC assessment.
 - **Battery duration:** configure `timePath` for a numeric duration in seconds.
   Device-specific infinite/240-hour sentinels are not inferred.
-- **Freshwater duration:** configure one **total freshwater consumption rate** and
-  its actual units, `m3/s` or `L/day`. With a Tanks list, Endurance uses the sum of
-  current volumes; no external total-volume calculation is needed. For an existing
-  single-tank setup, an explicit `volumePath` remains supported.
-  Duration to empty is `total current volume / total consumption rate`. It adds
-  critical/warning conditions at 24/48 hours. Level thresholds separately protect
-  reserves. Verify the installed consumption provider's units and whether a rate
-  represents total consumption; Endurance does not sum or average repeated forecasts.
+- **Freshwater duration:** internal boat-wide usage estimation is now included.
+  No consumption plugin or active-tank selection is required. See below.
+
+## Internal freshwater usage estimation
+
+Under Freshwater, leave **Usage estimate** set to **auto** and the external
+consumption path blank to learn internally. An existing external path remains
+in use in auto mode; choose **internal** to replace it, or **external** to require it.
+An unavailable configured external source never silently falls back to another rate.
+
+Endurance estimates usage from the **sum of selected usable tanks' current volumes**.
+The estimate applies to the whole supply; switching the feeding tank requires no
+change. Exclude contaminated or unusable tanks. Changing the selected supply or its
+configured capacity starts new learning history.
+
+- **Starting estimate:** configurable litres per person per day, initially 6.
+  This is one boat-wide assumption, multiplied by crew count once.
+- **Crew:** `communication.crewNames` when available; otherwise the configured
+  fallback count (initially 2). An empty roster means zero people, not unknown.
+- **Learning:** separate history per crew count; a learned rate is used only after
+  at least 72 accepted observation hours by default and three accepted intervals.
+  Until then, days remaining is explicitly labelled Default or Learning and uses
+  the configured starting estimate. No interpolation between crew counts is assumed.
+- **Settling:** sample only newly timestamped complete readings, at least five minutes
+  apart; take a three-sample median per tank. Require an hour of observations and
+  confirmation before accepting a decrease beyond the noise allowance (0.5 L or
+  0.2% of capacity, whichever is larger). Small usage accumulates across intervals.
+  Unchanged readings never become a learned zero-use or infinite-endurance claim.
+- **Discontinuities:** exclude refills, opposing tank movements suggesting transfers,
+  missing volumes, timestamp differences over five minutes, and observation gaps
+  over six hours. Do not learn across a restart. Settled intervals over seven days
+  are discarded. Implausible usage above the configured daily limit is excluded.
+- **Underway:** learning pauses when navigation state reports sailing, motoring or
+  under way. Without that state, motion cannot be identified automatically. You can
+  also pause learning in Plugin Config during filling, transfer or maintenance.
+- **Persistence:** learned rates are saved in the plugin's data directory every five
+  minutes when changed, and on stop. Short-term observation anchors are not restored.
+  Disk errors are reported in assessment diagnostics; monitoring continues.
+
+Days to empty is combined current volume divided by estimated total daily use.
+The setup page displays days; Signal K publishes `time` in seconds and
+`consumptionRate` in m³/s. `rateSource` is `default`, `learning`, `learned`, `external`,
+or `unavailable`; `learning` diagnostics show progress and pause/exclusion reasons.
+Default/learning duration estimates do not trigger forecast-based intervention
+alerts. Measured level thresholds remain active, and learned or external duration
+estimates can add the existing 24/48-hour intervention conditions.
+
+Sensor data cannot reveal simultaneous use and filling that cancel out, transfers
+with delayed readings can resemble consumption, and leaks are also water use.
+Pause learning during known transfers or filling; review the rate against actual use.
+This alpha has synthetic validation, not onboard learning validation.
+
 
 Fuel engine-running time and propane estimates are excluded from chronological
 endurance. Overall duration uses available freshwater and battery estimates and is
@@ -152,6 +196,7 @@ Under the selected preview/live prefix:
 - `status`, `action`, `reason`, `message`, `limitingResource`, and `coverage`.
 - `time`, `energyTime`, `waterTime`: seconds or null when unavailable.
 - `resources.<system>.status`, `.action`, `.reason`, `.time`.
+- Freshwater `.consumptionRate` (m³/s), `.rateSource`, and `.learning` diagnostics.
 - For tank systems, `resources.<system>.tanks`: each tank's inputs, freshness, status,
   capacity, current volume, free space, and volume calculation method.
 - `resources.<system>.totals.capacityM3`, `.currentVolumeM3`, `.availableVolumeM3`,
@@ -178,9 +223,9 @@ npm pack
 ```
 
 See [acceptance checks](docs/ACCEPTANCE.md) and [release notes](docs/CHANGELOG.md).
-Future work includes active supply selection, source adapters, notification hysteresis
-and reminders, and optional passage readiness. Generalized consumption learning is
-outside this release.
+Future work includes source adapters, notification hysteresis and reminders, and
+optional passage readiness. Internal usage estimation currently covers freshwater;
+fuel engine hours, propane and holding fill-rate learning remain future work.
 
 Signal K conventions: [plugin interface](https://demo.signalk.org/documentation/_signalk/server-api/Plugin.html),
 [data processing](https://demo.signalk.org/documentation/Developing/Plugins/Processing_Data.html),

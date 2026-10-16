@@ -18,6 +18,13 @@ async function refresh() {
       for(const source of list){const p=document.createElement('p');p.textContent=`${source.path} — ${JSON.stringify(source.value)}; ${source.timestamp||'no timestamp'}; ${source.source||'source unavailable'}`;section.append(p);if(name!=='energy'){const paths=document.createElement('p');paths.textContent=`Full capacity: ${source.capacityPath} (${source.capacityM3??'unavailable'} m³); current volume: ${source.volumePath||'calculated from level × capacity when available'}`;section.append(paths);}}
       container.append(section);
     }
+    const water=result.assessment?.resources?.freshwater;
+    const duration=water?.time;
+    const labels={default:'Default estimate',learning:'Learning — starting estimate',learned:'Learned estimate',external:'External estimate',unavailable:'Unavailable'};
+    const label=labels[water?.rateSource]||'Unavailable';
+    const reasons={STARTING:'Starting observations',SUPPLY_CHANGED:'Water supply changed',SUPPLY_OR_CREW_CHANGED:'Starting observations for this crew',SETTLING:'Settling tank readings',OBSERVING:'Observing usage',BELOW_SENSOR_RESOLUTION:'Waiting for a measurable change',CONFIRMING_USAGE:'Confirming usage',UNCONFIRMED_MOVEMENT:'Waiting for stable readings',TRANSFER_OR_MIXED_MOVEMENT:'Transfer or unsettled readings excluded',REFILL:'Refill excluded',OBSERVATION_ACCEPTED:'Usage observation accepted',IMPLAUSIBLE_USAGE:'Unusually large change excluded',OBSERVATION_GAP:'Observation gap excluded',OBSERVATION_TOO_LONG:'Old observation interval excluded',INCOMPLETE_VOLUME:'Waiting for all tank volumes',LEARNING_PAUSED:'Learning paused',UNSETTLED_TIMESTAMPS:'Waiting for aligned tank readings',CLOCK_OR_SOURCE_CHANGED:'Sensor timing changed'};
+    const progress=water?.learning?` (${(water.learning.observationHours||0).toFixed(1)} observed hours; ${reasons[water.learning.reason]||'Waiting for observations'})`:'';
+    document.getElementById('water-duration').textContent=typeof duration==='number'&&Number.isFinite(duration)?`${(duration/86400).toFixed(1)} days to empty — ${label}${progress}`:`Unavailable — ${label}${progress}`;
     document.getElementById('assessment').textContent=result.assessment?JSON.stringify(result.assessment,null,2):'No assessment yet.';
   }catch(error){status.textContent=error.message;}
 }

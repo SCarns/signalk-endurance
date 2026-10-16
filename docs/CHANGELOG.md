@@ -1,5 +1,21 @@
 # Release notes
 
+## 0.1.0-alpha.3
+
+- Add independent internal boat-wide freshwater usage estimation; no copied CE code
+  or CE runtime dependency. The implementation remains MIT licensed.
+- Learn from summed usable tank volume, with one default allowance for the whole
+  crew and separate learned histories per crew count. Tank switching is transparent.
+- Reject unsettled/noisy inputs, refills, detected transfers, gaps and implausible
+  changes. Pause learning underway or by configuration.
+- Preserve learned rates across restarts; do not carry observation intervals across
+  restarts or changes to the selected supply.
+- Label default, learning, learned and external estimates. Provisional default
+  durations do not generate forecast-based intervention alerts.
+- Publish freshwater consumption rate in m³/s and duration in seconds, and show days
+  remaining to empty on the setup page.
+- Retain explicit external-rate configuration and existing single/multi-tank settings.
+
 ## 0.1.0-alpha.2
 
 - Use SOC labels for energy and Level labels for tank systems.
