@@ -8,6 +8,8 @@ multiple tanks in each tank system and calculates their combined capacity and vo
 Energy Predictor, Consumption Estimator, and Derived Data are optional sources, never
 dependencies. There are no runtime package dependencies. MIT licensed.
 
+![Endurance — brass hourglass over open water](public/icon.png)
+
 ## Install
 
 From your Signal K configuration directory (usually `~/.signalk`):
@@ -16,7 +18,7 @@ From your Signal K configuration directory (usually `~/.signalk`):
 npm install github:SCarns/signalk-endurance
 ```
 
-Or install a downloaded package with `npm install /absolute/path/signalk-endurance-0.1.0-alpha.5.tgz`.
+Or install a downloaded package with `npm install /absolute/path/signalk-endurance-0.1.0-alpha.6.tgz`.
 Restart Signal K, enable **Endurance** in **Server → Plugin Config**, then open its
 webapp at `/signalk-endurance/`. Administrator login is required for its setup API.
 For Docker, install inside the server container in its configuration directory.

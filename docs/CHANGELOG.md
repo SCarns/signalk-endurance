@@ -1,5 +1,10 @@
 # Release notes
 
+## 0.1.0-alpha.6
+
+- Add the approved brass hourglass over open water as the app icon and browser icon,
+  matching the Barometer visual style.
+
 ## 0.1.0-alpha.5
 
 - Discover the standard Energy Predictor status when its optional path is blank.
