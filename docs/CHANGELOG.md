@@ -5,7 +5,8 @@
 - Promote the reviewed initial plugin and dashboard to v1.0.0.
 - Document using published Signal K paths in KIP, WilhelmSK, and other displays.
 - Correct the WebApps selection icon path to be relative to the public directory.
-- GitHub distribution only for now; npm/App Store publication remains pending.
+- List optional Derived Data, Energy Predictor, and Water Consumption Estimator integrations.
+- Prepare npm/App Store metadata and include the icon for both package and webapp paths.
 
 ## 0.1.0-alpha.7
 

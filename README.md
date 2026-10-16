@@ -15,9 +15,18 @@ and estimated time alongside the instruments you already use.
 
 ![Endurance — brass hourglass over open water](public/icon.png)
 
+## Works with
+
+- **[Derived Data](https://github.com/SignalK/signalk-derived-data)** supplies additional measurements, including calculated tank volumes when configured.
+- **[Energy Predictor](https://github.com/meri-imperiumi/signalk-energy-predictor)** adds energy forecasts and advance charging warnings.
+- **[Water Consumption Estimator](https://github.com/meri-imperiumi/signalk-consumption-estimator)** can supply freshwater consumption estimates through configured external paths.
+
+All three are optional. Endurance monitors resources on its own and includes its own
+boat-wide freshwater usage estimation. No companion plugin is required.
+
 ## Install
 
-Install through the Signal K App Store when available.
+Install **Endurance** through the Signal K App Store.
 
 For manual installation, from your Signal K configuration directory (usually `~/.signalk`):
 

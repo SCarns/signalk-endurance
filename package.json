@@ -14,7 +14,12 @@
   ],
   "signalk": {
     "displayName": "Endurance",
-    "appIcon": "./icon.png"
+    "appIcon": "./icon.png",
+    "recommends": [
+      "signalk-derived-data",
+      "@meri-imperiumi/signalk-energy-predictor",
+      "@meri-imperiumi/signalk-consumption-estimator"
+    ]
   },
   "signalk-plugin-enabled-by-default": false,
   "files": [
@@ -23,7 +28,8 @@
     "public",
     "README.md",
     "LICENSE",
-    "docs"
+    "docs",
+    "icon.png"
   ],
   "scripts": {
     "test": "node --test test/*.test.js"
@@ -35,5 +41,6 @@
   "homepage": "https://github.com/SCarns/signalk-endurance#readme",
   "bugs": {
     "url": "https://github.com/SCarns/signalk-endurance/issues"
-  }
+  },
+  "author": "SCarns"
 }
