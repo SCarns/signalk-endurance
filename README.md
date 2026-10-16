@@ -2,11 +2,11 @@
 
 **Endurance isn't another gauge. It's the thing that watches the gauges so you don't have to.**
 
-Endurance is a standalone Signal K plugin that monitors energy, freshwater, fuel,
-propane, and holding tanks, then explains which resource needs attention. It supports
-multiple tanks in each tank system and calculates their combined capacity and volume.
-Energy Predictor, Consumption Estimator, and Derived Data are optional sources, never
-dependencies. There are no runtime package dependencies. MIT licensed.
+Endurance watches your boat’s power, water, fuel, propane, and holding tanks—all in one place, so you don’t have to keep checking separate gauges. It stays quiet when everything is fine and notifies you when it’s time to charge, refill, or pump out.
+
+Endurance is a standalone Signal K plugin that supports multiple tanks and calculates their combined capacity and volume.
+
+When installed, Energy Predictor, Consumption Estimator, and Derived Data can provide additional forecasts and measurements. These plugins are optional.
 
 ![Endurance — brass hourglass over open water](public/icon.png)
 
