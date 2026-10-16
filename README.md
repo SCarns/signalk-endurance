@@ -12,13 +12,20 @@ When installed, Energy Predictor, Consumption Estimator, and Derived Data can pr
 
 ## Install
 
-From your Signal K configuration directory (usually `~/.signalk`):
+Install through the Signal K App Store when available.
+
+For manual installation, from your Signal K configuration directory (usually `~/.signalk`):
 
 ```sh
 npm install github:SCarns/signalk-endurance
 ```
 
-Or install a downloaded package with `npm install /absolute/path/signalk-endurance-0.1.0-alpha.6.tgz`.
+Or install a downloaded package with:
+
+```sh
+npm install /absolute/path/signalk-endurance-0.1.0-alpha.6.tgz
+```
+
 Restart Signal K, enable **Endurance** in **Server → Plugin Config**, then open its
 webapp at `/signalk-endurance/`. Administrator login is required for its setup API.
 For Docker, install inside the server container in its configuration directory.
