@@ -1,5 +1,14 @@
 # Release notes
 
+## 0.1.0-alpha.5
+
+- Discover the standard Energy Predictor status when its optional path is blank.
+- Discover time remaining from the selected SOC battery bank when its path is blank.
+- Keep explicit paths authoritative and retain freshness and ambiguity checks.
+- Show resolved energy paths and their selection/freshness on the setup page.
+- Explain the optional Energy Predictor integration in configuration and setup, and
+  show whether usable forecast status data was found.
+
 ## 0.1.0-alpha.4
 
 - Add a saved input-unit dropdown: Litres (default), US gallons, or m³.

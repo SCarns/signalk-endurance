@@ -16,7 +16,7 @@ From your Signal K configuration directory (usually `~/.signalk`):
 npm install github:SCarns/signalk-endurance
 ```
 
-Or install a downloaded package with `npm install /absolute/path/signalk-endurance-0.1.0-alpha.4.tgz`.
+Or install a downloaded package with `npm install /absolute/path/signalk-endurance-0.1.0-alpha.5.tgz`.
 Restart Signal K, enable **Endurance** in **Server → Plugin Config**, then open its
 webapp at `/signalk-endurance/`. Administrator login is required for its setup API.
 For Docker, install inside the server container in its configuration directory.
@@ -137,11 +137,22 @@ The server's preferred-source model values are used.
 
 ## Optional estimates
 
-- **Energy forecasts:** configure `predictionPath`. Healthy measured SOC plus
+- **Energy Predictor integration:** its optional forecasts add deficit monitoring
+  and advance charging warnings to the measured-SOC assessment. Configuration and
+  setup explain the integration and show whether forecast status data is available.
+  Leave `predictionPath` blank to discover
+  `electrical.energy.prediction.status`, or enter a custom path. Healthy measured SOC plus
   `deficit` gives informational WATCH; forecast `critical` gives WARNING. Measured
   low SOC takes priority. A missing forecast does not prevent SOC assessment.
-- **Battery duration:** configure `timePath` for a numeric duration in seconds.
-  Device-specific infinite/240-hour sentinels are not inferred.
+- **Battery duration:** leave `timePath` blank to discover `capacity.timeRemaining`
+  for the selected SOC battery bank. For example, selecting
+  `electrical.batteries.House.capacity.stateOfCharge` discovers
+  `electrical.batteries.House.capacity.timeRemaining`. A custom path overrides this
+  discovery. Multiple banks still require SOC selection; no duration is borrowed from
+  another bank. All duration readings must be fresh numeric seconds.
+  Device-specific infinite/240-hour sentinels are not inferred. Explicit paths stay
+  authoritative even when missing or stale. Discovery is retried each cycle, and the
+  setup page shows the selected paths and their freshness.
 - **Freshwater duration:** internal boat-wide usage estimation is now included.
   No consumption plugin or active-tank selection is required. See below.
 

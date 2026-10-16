@@ -16,8 +16,15 @@ async function refresh() {
       const note=document.createElement('p');
       note.textContent=config?.enabled===false?'Disabled':config?.tanks?.length?`${config.tanks.filter(t=>t.enabled).length} configured tanks; ${config.assessmentMode} assessment`:config?.levelPath?`Configured: ${config.levelPath}`:list.length===1?'Automatically selected':list.length?(name==='energy'?'Choose a house bank in Plugin Config':'Add tanks in Plugin Config'):(name==='energy'?'No SOC source found':'No level source found');section.append(note);
       for(const source of list){const p=document.createElement('p');p.textContent=`${source.path} — ${JSON.stringify(source.value)}; ${source.timestamp||'no timestamp'}; ${source.source||'source unavailable'}`;section.append(p);if(name!=='energy'){const paths=document.createElement('p');paths.textContent=`Full capacity: ${source.capacityPath} (${source.capacityM3??'unavailable'} m³); current volume: ${source.volumePath||'calculated from level × capacity when available'}`;section.append(paths);}}
+      if(name==='energy'&&result.assessment?.resources?.energy){
+        const energy=result.assessment.resources.energy;
+        for(const [label,input] of [['Energy forecast',energy.prediction],['Battery time remaining',energy.duration]]){const p=document.createElement('p');p.textContent=`${label}: ${input?.path||'No matching battery bank selected'} — ${input?.selection==='CONFIGURED'?'configured':input?.selection==='AUTO_DISCOVERED'?'automatically discovered':'not found'}; ${input?.valid?'fresh':'unavailable or stale'}`;section.append(p);}
+      }
       container.append(section);
     }
+    const forecast=result.assessment?.resources?.energy?.prediction;
+    const recognized=['surplus','rising','stable','deficit','critical'].includes(String(forecast?.value||'').toLowerCase());
+    document.getElementById('energy-integration').textContent=forecast?.valid&&recognized?`Energy forecast data is available from ${forecast.path}. Endurance can use it for advance charging guidance.`:forecast?.selection==='AUTO_DISCOVERED'||forecast?.selection==='CONFIGURED'?`The forecast path ${forecast.path} is selected, but its status is stale, unavailable or unrecognized. Check Energy Predictor and the selected path.`:'Energy Predictor status data has not been found. If you use Energy Predictor, check that it is enabled and publishing, or enter its custom status path. SOC assessment still works.';
     const water=result.assessment?.resources?.freshwater;
     const duration=water?.time;
     const labels={default:'Default estimate',learning:'Learning — starting estimate',learned:'Learned estimate',external:'External estimate',unavailable:'Unavailable'};
