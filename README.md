@@ -16,7 +16,7 @@ From your Signal K configuration directory (usually `~/.signalk`):
 npm install github:SCarns/signalk-endurance
 ```
 
-Or install a downloaded package with `npm install /absolute/path/signalk-endurance-0.1.0-alpha.3.tgz`.
+Or install a downloaded package with `npm install /absolute/path/signalk-endurance-0.1.0-alpha.4.tgz`.
 Restart Signal K, enable **Endurance** in **Server → Plugin Config**, then open its
 webapp at `/signalk-endurance/`. Administrator login is required for its setup API.
 For Docker, install inside the server container in its configuration directory.
@@ -42,8 +42,31 @@ Each tank has:
 - **Current volume path**, in m³. Blank discovers the tank's `currentVolume`, then
   `remaining`. This accepts calibrated volumes from providers such as Derived Data.
 - **Full capacity path**, in m³. Blank uses the tank's `capacity` path.
-- **Full capacity in m³**, an optional fixed value that takes precedence over the
-  capacity path. Leave zero to use the path. For example, 100 litres is 0.1 m³.
+- **Full capacity**, an optional fixed value in the selected input units that takes
+  precedence over the capacity path. Leave zero to use the path.
+
+### Choose input units
+
+**Units for entered volumes** offers **Litres** (the default), **US gallons**, and
+**Cubic metres (m³)**. The selection is saved with your configuration. It applies to
+manual full capacities, starting daily usage per person, and maximum daily usage.
+For example, enter 400 with Litres selected to represent a 0.4 m³ tank. One US gallon
+is exactly 0.003785411784 m³; imperial gallons are not implied.
+
+The selector specifies the units of the numbers you enter. If you change the
+selection, adjust the numeric entries to match before saving; this standard plugin
+configuration form does not automatically rescale existing entries as you edit.
+It does not change the units of Signal K input paths or an external consumption
+source: those keep their own documented units.
+
+On upgrade, older `capacityM3` entries are converted to the new capacity field in the
+selected units (litres by default). Older litre-based daily allowances are migrated
+likewise. Migration is saved through Signal K's configuration API, so the form
+shows the converted editable values. The prior configuration is backed up as
+`config-before-alpha4.json` in the plugin data directory. When earlier learned state
+is converted, its original file is retained with an `.alpha3-backup` suffix; restore
+these backups if rolling back to alpha.3. All volume calculations use m³ and estimated
+rates use m³/s; saved earlier learned rates are converted without discarding history.
 
 Full capacity is the volume when full. Current volume is what's in the tank now.
 Capacity is a fixed vessel property and does not expire with the sensor freshness
@@ -134,7 +157,8 @@ The estimate applies to the whole supply; switching the feeding tank requires no
 change. Exclude contaminated or unusable tanks. Changing the selected supply or its
 configured capacity starts new learning history.
 
-- **Starting estimate:** configurable litres per person per day, initially 6.
+- **Starting estimate:** configurable volume per person per day in your selected
+  input units, initially equivalent to 6 litres.
   This is one boat-wide assumption, multiplied by crew count once.
 - **Crew:** `communication.crewNames` when available; otherwise the configured
   fallback count (initially 2). An empty roster means zero people, not unknown.

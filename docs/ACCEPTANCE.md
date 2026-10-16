@@ -37,3 +37,13 @@ Do not claim boat validation before these checks pass.
 - Restart and confirm learned history survives, but no usage is attributed to the
   offline interval. Confirm data-directory persistence is reported as disk.
 - Verify external-rate selection still works with the provider's actual units.
+
+## Input unit selection
+
+- Verify the unit dropdown defaults to Litres and persists your selection after save
+  and restart. Enter equivalent capacities in litres, US gallons and m³ and confirm
+  the same m³ totals and duration. Adjust numeric entries when changing the selector.
+- Verify migration of existing m³ capacities and litre-based allowances preserves
+  physical capacity and usage. Learned rates should retain observation progress.
+- Verify existing Signal K capacity/current-volume paths are interpreted in m³
+  regardless of the manual input selection.

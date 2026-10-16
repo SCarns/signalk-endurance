@@ -17,13 +17,13 @@ function observe(engine,minute,volumes,opts={}) {
 function run(engine,hours,fn,opts={}) {let result;for(let m=0;m<=hours*60;m+=5)result=observe(engine,m,fn(m),opts);return result;}
 const daily=.012;
 test('new supply has one configurable default for all tanks, not one per tank',()=>{
- const engine=new WaterUsage(settings());const r=observe(engine,0,[.2,.2]);assert.equal(r.rate,.006);assert.equal(r.source,'default');assert.equal(r.ready,false);
+ const engine=new WaterUsage(settings());const r=observe(engine,0,[.2,.2]);assert.equal(r.rate,.006/86400);assert.equal(r.source,'default');assert.equal(r.ready,false);
 });
 test('steady boat-wide consumption learns 12 L/day over stationary observations',()=>{
- const engine=new WaterUsage(settings());const r=run(engine,80,m=>[.2-daily*m/1440,.2]);assert.equal(r.source,'learned');assert.ok(Math.abs(r.rate-daily)<1e-9);assert.ok(r.observationHours>=72);assert.ok(r.intervals>=3);
+ const engine=new WaterUsage(settings());const r=run(engine,80,m=>[.2-daily*m/1440,.2]);assert.equal(r.source,'learned');assert.ok(Math.abs(r.rate-daily/86400)<1e-9);assert.ok(r.observationHours>=72);assert.ok(r.intervals>=3);
 });
 test('switching tanks does not change total learned usage',()=>{
- const engine=new WaterUsage(settings());const r=run(engine,80,m=>m<=2400?[.2-daily*m/1440,.2]:[.18,.2-daily*(m-2400)/1440]);assert.equal(r.source,'learned');assert.ok(Math.abs(r.rate-daily)<1e-9);
+ const engine=new WaterUsage(settings());const r=run(engine,80,m=>m<=2400?[.2-daily*m/1440,.2]:[.18,.2-daily*(m-2400)/1440]);assert.equal(r.source,'learned');assert.ok(Math.abs(r.rate-daily/86400)<1e-9);
 });
 test('balanced transfers and staggered updates cannot become learned consumption',()=>{
  const engine=new WaterUsage(settings());run(engine,4,()=>[.2,.2]);
@@ -51,7 +51,7 @@ test('large timestamp skew, pauses and long gaps prevent observations across dis
  observe(engine,200,[.19,.2]);observe(engine,600,[.18,.2]);assert.equal(engine.anchor,null);assert.equal(engine.history.length,1);
 });
 test('crew counts learn separately and zero crew never creates infinite duration',()=>{
- const engine=new WaterUsage(settings());run(engine,80,m=>[.2-daily*m/1440,.2]);const r=observe(engine,4805,[.16,.2],{crew:2});assert.equal(r.source,'default');assert.equal(r.rate,.012);assert.equal(engine.anchor,null);assert.equal(observe(engine,4810,[.16,.2],{crew:0}).rate,0);assert.ok(engine.bins['1']);
+ const engine=new WaterUsage(settings());run(engine,80,m=>[.2-daily*m/1440,.2]);const r=observe(engine,4805,[.16,.2],{crew:2});assert.equal(r.source,'default');assert.equal(r.rate,.012/86400);assert.equal(engine.anchor,null);assert.equal(observe(engine,4810,[.16,.2],{crew:0}).rate,0);assert.ok(engine.bins['1']);
 });
 test('changing included supply invalidates incompatible learned history',()=>{
  const engine=new WaterUsage(settings());run(engine,80,m=>[.2-daily*m/1440,.2]);assert.equal(observe(engine,4805,[.1],{signature:'one-different-tank'}).source,'default');assert.equal(Object.keys(engine.bins).length,0);
@@ -64,7 +64,7 @@ test('corrupt learned bins are ignored and state writes round-trip atomically',(
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'endurance-usage-'));const store=storage({getDataDirPath:()=>dir});assert.equal(store.load(),null);store.save(engine.snapshot());assert.deepEqual(store.load(),engine.snapshot());assert.equal(fs.existsSync(path.join(dir,'freshwater-usage-v1.json.tmp')),false);
 });
 test('implausible fast drops do not create a huge learned rate',()=>{
- const engine=new WaterUsage({...settings(),maxLitresPerDay:1});run(engine,5,m=>[.2-.024*m/1440,.2]);assert.equal(Object.keys(engine.bins).length,0);assert.equal(engine.reason,'IMPLAUSIBLE_USAGE');
+ const engine=new WaterUsage({...settings(),maxDailyVolumeM3:.001});run(engine,5,m=>[.2-.024*m/1440,.2]);assert.equal(Object.keys(engine.bins).length,0);assert.equal(engine.reason,'IMPLAUSIBLE_USAGE');
 });
 function server(extra={}) {
  const data={tanks:{freshWater:{a:{currentLevel:{value:1,timestamp:new Date().toISOString()},capacity:{value:.2}},b:{currentLevel:{value:1,timestamp:new Date().toISOString()},capacity:{value:.2}}}},communication:{crewNames:{value:['Steve']}}};
@@ -90,7 +90,7 @@ test('invalid usage configuration is rejected at startup',()=>{
  assert.throws(()=>normalize({resources:{freshwater:{usageSource:'guess'}}}));
 });
 test('days of unchanged levels never become a learned zero-use guarantee',()=>{
- const engine=new WaterUsage(settings());const r=run(engine,80,()=>[.2,.2]);assert.equal(r.source,'default');assert.equal(r.ready,false);assert.equal(r.intervals,0);assert.equal(r.rate,.006);
+ const engine=new WaterUsage(settings());const r=run(engine,80,()=>[.2,.2]);assert.equal(r.source,'default');assert.equal(r.ready,false);assert.equal(r.intervals,0);assert.equal(r.rate,.006/86400);
 });
 test('underway state prevents internal learning while keeping a labelled estimate',()=>{
  const {app,data,options,messages}=server();data.navigation={state:{value:'sailing'}};const plugin=create(app);try{plugin.start(options);const learning=messages.at(-1).updates[0].values.find(v=>v.path.endsWith('freshwater.learning')).value;assert.equal(learning.reason,'LEARNING_PAUSED');assert.equal(learning.consumptionRate,.006/86400);assert.equal(Object.hasOwn(learning,'rate'),false);}finally{plugin.stop();}

@@ -1,5 +1,16 @@
 # Release notes
 
+## 0.1.0-alpha.4
+
+- Add a saved input-unit dropdown: Litres (default), US gallons, or m³.
+- Apply the selection to manual tank capacities and freshwater daily usage allowances.
+- Convert manual volume inputs to m³ at the configuration boundary; calculations and
+  published rates use m³/s and durations use seconds. Signal K path inputs retain
+  their existing SI interpretation.
+- Migrate prior m³ capacities and litre-based allowances to the new editable fields
+  and save the selected units. Preserve learned history while converting stored
+  daily rates to SI rates.
+
 ## 0.1.0-alpha.3
 
 - Add independent internal boat-wide freshwater usage estimation; no copied CE code

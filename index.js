@@ -1,9 +1,10 @@
 'use strict';
 const { schema, normalize } = require('./lib/config');
+const {migrateOptions}=require('./lib/input-units');
 const { discover, select } = require('./lib/discovery');
 const { decide } = require('./lib/decision');
 const {WaterUsage}=require('./lib/water-usage');
-const {storage}=require('./lib/usage-store');
+const {storage,backupOptions}=require('./lib/usage-store');
 const modules = Object.fromEntries(['energy', 'freshwater', 'fuel', 'propane', 'holding'].map(k => [k, require(`./lib/resources/${k}`)]));
 module.exports = app => {
   let waterUsage, store=null, lastSave=0, storageError=null;
@@ -54,7 +55,12 @@ module.exports = app => {
   }
   plugin.start = options => {
     plugin.stop();
-    config = normalize(options);
+    const editable=migrateOptions(options||{});
+    config = normalize(editable);
+    if(JSON.stringify(editable)!==JSON.stringify(options||{}) && typeof app.savePluginOptions==='function') {
+      try{backupOptions(app,options||{});app.savePluginOptions(editable,error=>{if(error)app.setPluginError(`Could not save input-unit settings: ${error.message}`);});}
+      catch(error){app.setPluginError(`Could not save input-unit settings: ${error.message}`);}
+    }
     store=null;storageError=null;lastSave=0;let saved=null;
     try{store=storage(app);saved=store?.load()??null;}catch(e){storageError=e.message;app.debug?.(`Endurance usage history could not be loaded: ${e.message}`);}
     waterUsage=new WaterUsage(config.resources.freshwater.learning,saved);
