@@ -8,6 +8,11 @@ Endurance is a standalone Signal K plugin that supports multiple tanks and calcu
 
 When installed, Energy Predictor, Consumption Estimator, and Derived Data can provide additional forecasts and measurements. These plugins are optional.
 
+Endurance also publishes its assessments to Signal K, so you can put the information
+where you need it—in KIP, WilhelmSK, or another compatible display. Choose the
+Endurance paths supported by your display to show resource status, remaining supply,
+and estimated time alongside the instruments you already use.
+
 ![Endurance — brass hourglass over open water](public/icon.png)
 
 ## Install
@@ -23,16 +28,16 @@ npm install github:SCarns/signalk-endurance
 Or install a downloaded package with:
 
 ```sh
-npm install /absolute/path/signalk-endurance-0.1.0-alpha.7.tgz
+npm install /absolute/path/signalk-endurance-1.0.0.tgz
 ```
 
 Restart Signal K, enable **Endurance** in **Server → Plugin Config**, then open its
 webapp at `/signalk-endurance/`. Configuration requires an administrator; the dashboard supports read-only viewers.
 For Docker, install inside the server container in its configuration directory.
 
-Requires Node.js 18+ and standard Signal K Node plugin APIs. This is an alpha tested
-locally with synthetic readings and package installation checks; onboard validation
-is still required.
+Requires Node.js 18+ and standard Signal K Node plugin APIs. Tested locally with
+synthetic readings and package installation checks, with initial onboard review on
+TBD. Verify your own source paths, capacities, and thresholds during setup.
 
 ## Your dashboard
 
@@ -244,6 +249,13 @@ coverage is explicit; no valid resource data gives UNKNOWN. Within multi-tank
 systems, missing selected tanks cannot silently produce a healthy full-system result.
 
 ## Published data
+
+With live publishing enabled, paths begin with `environment.endurance`. For example,
+use `environment.endurance.message` for the current assessment,
+`environment.endurance.resources.energy.status` for power status, and
+`environment.endurance.resources.freshwater.time` for estimated freshwater duration
+(in seconds). Display support for text, units, and individual path types varies.
+Preview uses `environment.endurancePreview` instead.
 
 Under the selected preview/live prefix:
 
