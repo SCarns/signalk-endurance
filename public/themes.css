@@ -17,3 +17,5 @@
 [data-theme="red"] a:focus-visible,[data-theme="red"] button:focus-visible,[data-theme="red"] select:focus-visible,[data-theme="red"] summary:focus-visible{outline-color:#d76b61}
 
 [data-theme="red"] .mode{border-color:#6c302a;color:var(--ink)}
+
+@media(max-width:580px){.masthead{position:relative}.brand{padding-right:102px}.theme-controls{position:absolute;top:0;right:0}}
