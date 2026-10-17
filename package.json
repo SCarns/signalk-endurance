@@ -1,6 +1,6 @@
 {
   "name": "signalk-endurance",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Standalone vessel resource assessment for Signal K",
   "main": "index.js",
   "license": "MIT",

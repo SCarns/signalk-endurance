@@ -37,7 +37,7 @@ npm install github:SCarns/signalk-endurance
 Or install a downloaded package with:
 
 ```sh
-npm install /absolute/path/signalk-endurance-1.0.0.tgz
+npm install /absolute/path/signalk-endurance-1.0.1.tgz
 ```
 
 Restart Signal K, enable **Endurance** in **Server → Plugin Config**, then open its
@@ -178,6 +178,13 @@ The server's preferred-source model values are used.
   `electrical.energy.prediction.status`, or enter a custom path. Healthy measured SOC plus
   `deficit` gives informational WATCH; forecast `critical` gives WARNING. Measured
   low SOC takes priority. A missing forecast does not prevent SOC assessment.
+  Forecasts use `resources.energy.predictionStaleSeconds` (default 7200 seconds),
+  independently of measured SOC and battery duration (`staleSeconds`, default 300).
+  Energy Predictor 0.12.3 recalculates every 60 minutes by default (configurable
+  5–60 minutes) and republishes status on each successful cycle, including unchanged
+  values. Two hours allows one delayed cycle while still expiring stopped forecasts.
+  Configure a shorter forecast window if desired. Missing, expired, or invalidly
+  timestamped forecasts leave measured-SOC assessment in control.
 - **Battery duration:** leave `timePath` blank to discover `capacity.timeRemaining`
   for the selected SOC battery bank. For example, selecting
   `electrical.batteries.House.capacity.stateOfCharge` discovers

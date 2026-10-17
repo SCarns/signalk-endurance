@@ -1,3 +1,11 @@
+## 1.0.1
+
+- Fix forecasts disappearing after five minutes: use an independent configurable
+  `resources.energy.predictionStaleSeconds` window, default two hours, matching
+  Energy Predictor's default hourly refresh with allowance for one delayed cycle.
+- Keep measured SOC and battery duration freshness unchanged, including standalone
+  SOC fallback when the optional forecast is missing or expired.
+
 # Release notes
 
 ## 1.0.0

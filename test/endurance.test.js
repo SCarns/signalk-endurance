@@ -67,7 +67,7 @@ test('optional predictor adds WATCH or WARNING but never overrides measured crit
     assert.equal(r.status,status); if(status==='WATCH') assert.equal(r.limitingResource,'none');
   }
   assert.equal(evaluate([[energyPath,.4],['electrical.prediction.status','surplus']],{resources:{energy:{predictionPath:'electrical.prediction.status'}}}).status,'CRITICAL');
-  assert.equal(evaluate([[energyPath,.9],['electrical.prediction.status','critical',301]],{resources:{energy:{predictionPath:'electrical.prediction.status'}}}).status,'OK');
+  assert.equal(evaluate([[energyPath,.9],['electrical.prediction.status','critical',7201]],{resources:{energy:{predictionPath:'electrical.prediction.status'}}}).status,'OK');
 });
 test('water rate units produce identical seconds and stale rates clear estimate', () => {
   const volumePath='tanks.freshWater.total.currentVolume',consumptionPath='tanks.freshWater.total.prediction.consumption24h';
