@@ -35,3 +35,40 @@ test('forecast never rescues stale SOC or overrides measured reserve',()=>{
  assert.equal(assess([[soc,.4],[prediction,'rising',480]]).status,'CRITICAL');
  for(const entries of [[],[[prediction,null]],[[prediction,'rising',7201]],[[prediction,'rising',-6]]])assert.equal(assess([[soc,.99],...entries]).status,'OK');
 });
+
+test('battery duration states survive assessment and dashboard without changing decisions',()=>{
+ const cases=[
+  [[], 'WAITING_FOR_DATA','Waiting for data',null],
+  [[[duration,null]],'NO_ESTIMATE','No estimate',null],
+  [[[duration,null,301]],'STALE','Data stale',null],
+  [[[duration,3600,301]],'STALE','Data stale',null],
+  ...[undefined,'3600',-1,NaN,Infinity].map(v=>[[[duration,v]],'UNAVAILABLE','Unavailable',null]),
+  [[[duration,null,-6]],'UNAVAILABLE','Unavailable',null],
+  [[[duration,0]],'AVAILABLE','0 hours',0],
+  [[[duration,3600]],'AVAILABLE','1 hours',3600],
+  [[[duration,900000]],'AVAILABLE','10.4 days',900000]
+ ];
+ for(const [entries,state,label,time] of cases){
+  for(const [level,forecast] of [[.99,'surplus'],[.99,'critical'],[.4,'surplus']]){
+   const baseline=assess([[soc,level],[prediction,forecast]]);
+   const r=assess([[soc,level],[prediction,forecast],...entries]);
+   assert.equal(r.duration.state,state);assert.equal(r.duration.valid,state==='AVAILABLE');assert.equal(r.time,time);
+   for(const key of ['status','action','reason','message'])assert.equal(r[key],baseline[key]);
+   const view=require('../public/view-model').build({running:true,assessment:{timestamp:new Date(now).toISOString(),status:r.status,resources:{energy:r}}},'litres',now);
+   assert.equal(view.cards[0].facts.find(f=>f.label==='Battery monitor time').value,label);
+  }
+ }
+});
+test('duration timestamps and absent value fields cannot masquerade as explicit null',()=>{
+ const {readDuration}=require('../lib/discovery');
+ for(const leaf of [{value:null},{value:null,timestamp:'bad'},{timestamp:new Date(now).toISOString()},null]){
+  assert.equal(readDuration({getSelfPath:()=>leaf},duration,300,now).state,'UNAVAILABLE');
+ }
+ assert.equal(readDuration(fixture([[duration,null,300]]),duration,300,now).state,'NO_ESTIMATE');
+ assert.equal(readDuration(fixture([[duration,0,301]]),duration,300,now).state,'STALE');
+ const config=normalize().resources.energy,app=fixture([[soc,.99],[duration,null]]),selection={path:soc,reason:'CONFIGURED'};
+ assert.equal(energy(config,app,selection,now).duration.state,'NO_ESTIMATE');
+ assert.equal(energy(config,app,selection,now+301000).duration.state,'STALE');
+ app.getSelfPath=fixture([[soc,.99],[duration,7200]]).getSelfPath;
+ assert.equal(energy(config,app,selection,now).time,7200);
+});

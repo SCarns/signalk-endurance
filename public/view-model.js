@@ -36,7 +36,9 @@
       if(key==='energy'){
         const soc=r.input?.valid?percent(r.input.value):null;
         if(soc)card.metric={value:soc,unit:''};card.label='Battery state of charge';
-        const time=duration(r.time);fact('Battery monitor time',time?`${time.value} ${time.unit}`:null);
+        const time=duration(r.time);
+        const timeState=({NO_ESTIMATE:'No estimate',WAITING_FOR_DATA:'Waiting for data',STALE:'Data stale',UNAVAILABLE:'Unavailable'})[r.duration?.state];
+        fact('Battery monitor time',timeState||(time?`${time.value} ${time.unit}`:null));
         const forecast=r.prediction?.valid?String(r.prediction.value).toLowerCase():'';
         fact('Energy forecast',({surplus:'Surplus expected',rising:'Improving',stable:'Stable',deficit:'Deficit expected',critical:'Reserve crossing expected'})[forecast]||'Not available');
       }else{

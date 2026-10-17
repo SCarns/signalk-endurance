@@ -1,6 +1,6 @@
 {
   "name": "signalk-endurance",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Standalone vessel resource assessment for Signal K",
   "main": "index.js",
   "license": "MIT",
@@ -18,7 +18,8 @@
     "recommends": [
       "signalk-derived-data",
       "@meri-imperiumi/signalk-energy-predictor",
-      "@meri-imperiumi/signalk-consumption-estimator"
+      "@meri-imperiumi/signalk-consumption-estimator",
+      "@meri-imperiumi/signalk-logbook"
     ]
   },
   "signalk-plugin-enabled-by-default": false,

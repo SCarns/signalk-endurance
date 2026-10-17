@@ -21,7 +21,9 @@ and estimated time alongside the instruments you already use.
 - **[Energy Predictor](https://github.com/meri-imperiumi/signalk-energy-predictor)** adds energy forecasts and advance charging warnings.
 - **[Water Consumption Estimator](https://github.com/meri-imperiumi/signalk-consumption-estimator)** can supply freshwater consumption estimates through configured external paths.
 
-All three are optional. Endurance monitors resources on its own and includes its own
+- **[Log Book](https://github.com/meri-imperiumi/signalk-logbook)** records Signal K alerts when they are raised and cleared, including Endurance alerts when live publishing and notifications are enabled.
+
+All four are optional. Endurance monitors resources on its own and includes its own
 boat-wide freshwater usage estimation. No companion plugin is required.
 
 ## Install
@@ -37,7 +39,7 @@ npm install github:SCarns/signalk-endurance
 Or install a downloaded package with:
 
 ```sh
-npm install /absolute/path/signalk-endurance-1.0.1.tgz
+npm install /absolute/path/signalk-endurance-1.0.2.tgz
 ```
 
 Restart Signal K, enable **Endurance** in **Server → Plugin Config**, then open its
@@ -312,3 +314,7 @@ fuel engine hours, propane and holding fill-rate learning remain future work.
 Signal K conventions: [plugin interface](https://demo.signalk.org/documentation/_signalk/server-api/Plugin.html),
 [data processing](https://demo.signalk.org/documentation/Developing/Plugins/Processing_Data.html),
 and [vessel data keys](https://signalk.org/specification/1.5.0/doc/vesselsBranch.html).
+
+### 1.0.2
+
+Battery monitor time distinguishes a fresh explicit null (No estimate), a path not yet observed (Waiting for data), expired readings (Data stale), and malformed or unavailable readings (Unavailable). Fresh nonnegative numeric values remain seconds, including zero and long estimates. Null does not mean infinity. SOC, Energy Predictor, and alert decisions are unchanged.
