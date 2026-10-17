@@ -21,7 +21,7 @@ and estimated time alongside the instruments you already use.
 - **[Energy Predictor](https://github.com/meri-imperiumi/signalk-energy-predictor)** adds energy forecasts and advance charging warnings.
 - **[Water Consumption Estimator](https://github.com/meri-imperiumi/signalk-consumption-estimator)** can supply freshwater consumption estimates through configured external paths.
 
-- **[Log Book](https://github.com/meri-imperiumi/signalk-logbook)** records Signal K alerts when they are raised and cleared, including Endurance alerts when live publishing and notifications are enabled.
+- **[Log Book](https://github.com/meri-imperiumi/signalk-logbook)** records Signal K alerts when they are raised and cleared, including Endurance alerts when live publishing and notifications are enabled. It also records crew changes. Endurance reads the shared crew roster: when using its own water-usage learning, it adjusts the starting allowance for the number aboard and learns separate usage rates for each crew size. If Water Consumption Estimator supplies the usage estimate, Endurance uses that total directly without applying crew count again.
 
 All four are optional. Endurance monitors resources on its own and includes its own
 boat-wide freshwater usage estimation. No companion plugin is required.
