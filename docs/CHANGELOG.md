@@ -1,3 +1,20 @@
+## 1.1.0
+
+- Publish Endurance-specific estimatedDays from authoritative existing seconds,
+  including explicit null invalidation and preview/live isolation.
+- Add opt-in fuel rate mapping and conditional engine running duration, independent
+  of chronological endurance and existing reserve alerts; no guessed consumption.
+- Add manual crew override, validated shared roster and explicit fallback diagnostics.
+  Retain independent freshwater learning and authoritative external total rates.
+- Expose discovered-source freshness separately from valid measurements.
+- Retain and regression-test individual holding alerts and incomplete tank coverage.
+- Clarify optional companions, units, scope, upgrade and rollback.
+
+## 1.0.2
+
+- Distinguish null, missing, stale and invalid battery duration without changing SOC,
+  forecast or alert decisions. Document optional Log Book notification integration.
+
 ## 1.0.1
 
 - Fix forecasts disappearing after five minutes: use an independent configurable

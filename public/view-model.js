@@ -53,6 +53,7 @@
           const source=({default:'Starting estimate',learning:'Learning · using starting estimate',learned:'Learned usage',external:'External usage estimate'})[r.rateSource];
           card.note=source||'Usage estimate unavailable';
           if(r.learning?.source==='learning'||r.learning?.source==='learned')card.note+=` · ${number(r.learning.observationHours||0,1)} hours observed`;
+          if(r.learning)card.note+=` · ${r.learning.crewCount} aboard (${({crewRoster:'shared roster',manualOverride:'manual',configuredFallback:'fallback'})[r.learning.crewSource]||'configured'})`;
           if(r.learning?.reason==='LEARNING_PAUSED')card.note+=' · learning paused';
         }else if(key==='holding'){
           const fullest=Math.max(-1,...(r.tanks||[]).map(t=>finite(t.levelRatio)?t.levelRatio:-1));
@@ -63,6 +64,7 @@
           if(current)card.metric=current;else if(percent(ratio))card.metric={value:percent(ratio),unit:''};
           card.label='Combined supply available';fact('Total capacity',text(full));fact('Remaining',percent(ratio)||(!t.complete?'Total unavailable':null));
         }
+        if(key==='fuel'){const hours=finite(r.engineTime)&&r.engineTime>=0?number(r.engineTime/3600,1):null;fact('Engine running time',hours!==null?`${hours} hours to empty`:null);}
         if(r.assessmentMode==='individual'&&(r.tanks||[]).length>1&&key!=='holding')card.note='Individual tank alerts enabled';
         card.tanks=(r.tanks||[]).map(tank=>{const v=volume(tank.currentVolumeM3,u),cap=volume(tank.capacityM3,u);return {name:tank.name||'Tank',value:v?`${v.value}${cap?` / ${cap.value}`:''} ${v.unit}`:percent(tank.levelRatio)||'Unavailable',issue:['WARNING','CRITICAL'].includes(tank.status)?tank.message:tank.status==='UNKNOWN'?'Data unavailable':''};});
       }

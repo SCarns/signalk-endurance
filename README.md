@@ -39,7 +39,7 @@ npm install github:SCarns/signalk-endurance
 Or install a downloaded package with:
 
 ```sh
-npm install /absolute/path/signalk-endurance-1.0.2.tgz
+npm install /absolute/path/signalk-endurance-1.1.0.tgz
 ```
 
 Restart Signal K, enable **Endurance** in **Server → Plugin Config**, then open its
@@ -151,7 +151,10 @@ tanks can be treated as one usable supply. Endurance does not operate valves or
 track which tank is actively feeding an engine.
 
 **Holding tanks always retain individual alerts.** Spare room in one cannot cancel
-a full tank elsewhere. Combined remaining space is additional information.
+a full tank elsewhere. Combined remaining space is additional information. Missing
+selected tanks keep coverage incomplete while a known full-tank alert remains active.
+Pump-out time is unavailable without a trustworthy fill-rate model; this release
+retains level and free-space monitoring rather than inventing days to full.
 
 In combined mode with incomplete inputs, a known low-tank warning remains visible;
 healthy partial readings cannot establish that the combined supply is healthy.
@@ -198,6 +201,26 @@ The server's preferred-source model values are used.
 - **Freshwater duration:** internal boat-wide usage estimation is now included.
   No consumption plugin or active-tank selection is required. See below.
 
+## Fuel engine running time
+
+Optionally set Fuel's **total fuel rate** path to an available Signal K rate such as
+`propulsion.main.fuel.rate` in **m³/s**. Existing calibrated RPM-derived rates are
+acceptable if their provider publishes current timestamps and documented SI units.
+Endurance reads that rate without changing the provider. Blank leaves duration
+unavailable; no companion plugin or assumed fuel curve is required.
+
+Select only usable fuel tanks and ensure the configured rate is the total draw from
+that selected supply (including other engines/consumers where applicable). Endurance
+cannot infer engine-to-tank plumbing. Complete fresh volume and a fresh positive
+numeric rate are required; missing/stale/null/zero/negative rates invalidate the
+estimate. It divides available volume by rate once and displays **engine running
+hours to empty**. This is conditional on maintaining that rate and includes the
+reserve; existing level alerts protect the configured reserve separately.
+
+Total `propulsion.*.runTime` is an accumulated engine-hours counter, not remaining
+endurance. Runtime or RPM alone cannot establish consumption. This release does not
+invent a rate, fit a new RPM curve, or extrapolate calendar days from engine hours.
+
 ## Internal freshwater usage estimation
 
 Under Freshwater, leave **Usage estimate** set to **auto** and the external
@@ -213,8 +236,14 @@ configured capacity starts new learning history.
 - **Starting estimate:** configurable volume per person per day in your selected
   input units, initially equivalent to 6 litres.
   This is one boat-wide assumption, multiplied by crew count once.
-- **Crew:** `communication.crewNames` when available; otherwise the configured
-  fallback count (initially 2). An empty roster means zero people, not unknown.
+- **Crew:** auto uses the optional shared `communication.crewNames` roster (also
+  used by Log Book); otherwise it uses the configured fallback count (initially 2).
+  Choose **manual** under freshwater learning to override the roster with that count.
+  A valid empty roster means zero people. Malformed rosters, duplicates, more than
+  100 names, invalid timestamps, and future timestamps use the fallback. Crew rosters
+  are persisted state: they do not expire like sensors and must be updated when crew
+  changes. The assessment reports crew count, source, and fallback reason. External
+  consumption estimates remain total rates and never get multiplied by crew again.
 - **Learning:** separate history per crew count; a learned rate is used only after
   at least 72 accepted observation hours by default and three accepted intervals.
   Until then, days remaining is explicitly labelled Default or Learning and uses
@@ -279,6 +308,15 @@ Under the selected preview/live prefix:
 
 - `status`, `action`, `reason`, `message`, `limitingResource`, and `coverage`.
 - `time`, `energyTime`, `waterTime`: seconds or null when unavailable.
+- `estimatedDays` and `resources.<system>.estimatedDays`: convenience numbers in
+  days (`d` metadata), derived only by dividing existing valid seconds by 86400.
+  Seconds remain authoritative; no second estimator or rounding is applied. Null,
+  missing, or invalid estimates publish null, and zero seconds publishes zero days.
+  Fuel and propane/holding without an existing duration publish null. Overall days
+  remains the minimum available water/battery estimate, not an all-resource guarantee.
+- `resources.fuel.engineTime`: engine running seconds to empty at the selected fuel
+  rate, or null. `resources.fuel.consumptionRate`: m³/s or null. These do not affect
+  level alerts, `time`, overall days, or limiting-resource decisions.
 - `resources.<system>.status`, `.action`, `.reason`, `.time`.
 - Freshwater `.consumptionRate` (m³/s), `.rateSource`, and `.learning` diagnostics.
 - For tank systems, `resources.<system>.tanks`: each tank's inputs, freshness, status,
@@ -291,7 +329,10 @@ Under the selected preview/live prefix:
 is `NONE`. Unavailable totals/durations publish null to invalidate earlier estimates.
 
 `GET /plugins/signalk-endurance/discovery` returns candidates, capacity/volume paths,
-and configuration. `GET /plugins/signalk-endurance/assessment` returns full inputs and
+and configuration. Candidate `freshness` distinguishes FRESH, STALE, MISSING,
+INVALID_TIMESTAMP, FUTURE, and INVALID; `measurementValid` additionally checks the
+numeric ratio. Discovery means a path exists, not that it is usable. Discovered stale
+paths remain visible for diagnosis; assessment inputs retain age and original stamps. `GET /plugins/signalk-endurance/assessment` returns full inputs and
 results. Stopped plugins return no assessment. Standard router authentication applies.
 
 ## Rollback and development
@@ -309,7 +350,7 @@ npm pack
 See [acceptance checks](docs/ACCEPTANCE.md) and [release notes](docs/CHANGELOG.md).
 Future work includes source adapters, notification hysteresis and reminders, and
 optional passage readiness. Internal usage estimation currently covers freshwater;
-fuel engine hours, propane and holding fill-rate learning remain future work.
+fuel runtime learning, propane and holding fill-rate learning remain future work.
 
 Signal K conventions: [plugin interface](https://demo.signalk.org/documentation/_signalk/server-api/Plugin.html),
 [data processing](https://demo.signalk.org/documentation/Developing/Plugins/Processing_Data.html),
@@ -318,3 +359,14 @@ and [vessel data keys](https://signalk.org/specification/1.5.0/doc/vesselsBranch
 ### 1.0.2
 
 Battery monitor time distinguishes a fresh explicit null (No estimate), a path not yet observed (Waiting for data), expired readings (Data stale), and malformed or unavailable readings (Unavailable). Fresh nonnegative numeric values remain seconds, including zero and long estimates. Null does not mean infinity. SOC, Energy Predictor, and alert decisions are unchanged.
+
+
+### Upgrade to 1.1.0
+
+Existing configuration remains valid; the new fuel rate is opt-in and crew selection
+retains automatic roster/fallback behavior. No Energy Predictor or Consumption
+Estimator calculation is modified. Test preview outputs before enabling live mode.
+To roll back, preserve your plugin options and learned usage file, install
+`signalk-endurance@1.0.2` in the Signal K configuration directory, and restart.
+Remove the new fuel `ratePath` and learning `crewSource` settings if the older server
+configuration validator rejects them. Keep preview/live path selection consistent.

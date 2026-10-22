@@ -5,6 +5,7 @@ const { discover, select } = require('./lib/discovery');
 const { decide } = require('./lib/decision');
 const {WaterUsage}=require('./lib/water-usage');
 const {storage,backupOptions}=require('./lib/usage-store');
+const days = seconds => typeof seconds === 'number' && Number.isFinite(seconds) && seconds >= 0 ? seconds / 86400 : null;
 const modules = Object.fromEntries(['energy', 'freshwater', 'fuel', 'propane', 'holding'].map(k => [k, require(`./lib/resources/${k}`)]));
 module.exports = app => {
   let waterUsage, store=null, lastSave=0, storageError=null;
@@ -14,6 +15,8 @@ module.exports = app => {
   function publish(result) {
     const base = prefix();
     const values = ['status', 'action', 'limitingResource', 'message', 'reason', 'time', 'coverage'].map(key => ({ path: `${base}.${key}`, value: result[key] }));
+    values.push({path: `${base}.estimatedDays`, value: days(result.time)});
+    for (const key of Object.keys(modules)) values.push({path: `${base}.resources.${key}.estimatedDays`, value: key === 'fuel' ? null : days(result.resources[key]?.time)});
     for (const [key, r] of Object.entries(result.resources)) {
       for (const field of ['status', 'action', 'reason', 'time']) values.push({ path: `${base}.resources.${key}.${field}`, value: r[field] });
       if (key !== 'energy') {
@@ -21,6 +24,7 @@ module.exports = app => {
         values.push({ path: `${base}.resources.${key}.tanks`, value: r.tanks });
       }
     }
+    values.push({path:`${base}.resources.fuel.engineTime`,value:result.resources.fuel?.engineTime??null}, {path:`${base}.resources.fuel.consumptionRate`,value:result.resources.fuel?.consumptionRate??null});
     const water=result.resources.freshwater;
     values.push({path:`${base}.resources.freshwater.consumptionRate`,value:water?.consumptionRate??null}, {path:`${base}.resources.freshwater.rateSource`,value:water?.rateSource??'unavailable'}, {path:`${base}.resources.freshwater.learning`,value:water?.learning??null});
     // Publish null durations to invalidate earlier estimates; never substitute zero.
@@ -35,7 +39,7 @@ module.exports = app => {
   function tick() {
     if (!running) return;
     try {
-      discovery = discover(app);
+      discovery = discover(app, config);
       const resources = {};
       const now = Date.now();
       for (const [name, monitor] of Object.entries(modules)) {
@@ -69,6 +73,7 @@ module.exports = app => {
     app.handleMessage(plugin.id, { updates: [{ meta: ['time', 'energyTime', 'waterTime', ...Object.keys(modules).map(k => `resources.${k}.time`)].map(p => ({ path: `${base}.${p}`, value: { units: 's', description: 'Estimated duration; null when unavailable. Fuel engine time is excluded.' } })) }] });
     app.handleMessage(plugin.id, { updates: [{ meta: Object.keys(modules).filter(k=>k !== 'energy').flatMap(k => ['capacityM3', 'currentVolumeM3', 'availableVolumeM3', 'freeVolumeM3', 'levelRatio'].map(field => ({ path: `${base}.resources.${k}.totals.${field}`, value: { units: field === 'levelRatio' ? 'ratio' : 'm3', description: field === 'levelRatio' ? 'Combined current volume divided by combined full capacity' : 'Combined tank volume in cubic metres; null if incomplete' } }))) }] });
     app.handleMessage(plugin.id,{updates:[{meta:[{path:`${base}.resources.freshwater.consumptionRate`,value:{units:'m3/s',description:'Estimated total freshwater usage rate; inspect rateSource for default, learning, learned or external'}}]}]});
+    app.handleMessage(plugin.id,{updates:[{meta:[{path:`${base}.estimatedDays`,value:{units:'d',description:'Convenience conversion of authoritative time in seconds; null when unavailable'}},...Object.keys(modules).map(k=>({path:`${base}.resources.${k}.estimatedDays`,value:{units:'d',description:'Convenience conversion of resource time; fuel running time is excluded'}})),{path:`${base}.resources.fuel.engineTime`,value:{units:'s',description:'Engine running duration at the selected fuel rate, to empty; excluded from calendar endurance'}},{path:`${base}.resources.fuel.consumptionRate`,value:{units:'m3/s',description:'Selected total fuel consumption rate'}}]}]});
     tick();
     timer = setInterval(tick, config.intervalSeconds * 1000);
   };
