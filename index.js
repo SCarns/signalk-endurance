@@ -16,7 +16,7 @@ module.exports = app => {
     const base = prefix();
     const values = ['status', 'action', 'limitingResource', 'message', 'reason', 'time', 'coverage'].map(key => ({ path: `${base}.${key}`, value: result[key] }));
     values.push({path: `${base}.estimatedDays`, value: days(result.time)});
-    for (const key of Object.keys(modules)) values.push({path: `${base}.resources.${key}.estimatedDays`, value: key === 'fuel' ? null : days(result.resources[key]?.time)});
+    for (const key of Object.keys(modules)) values.push({path: `${base}.resources.${key}.estimatedDays`, value: days(key === 'fuel' ? result.resources[key]?.engineTime : result.resources[key]?.time)});
     for (const [key, r] of Object.entries(result.resources)) {
       for (const field of ['status', 'action', 'reason', 'time']) values.push({ path: `${base}.resources.${key}.${field}`, value: r[field] });
       if (key !== 'energy') {
@@ -73,7 +73,7 @@ module.exports = app => {
     app.handleMessage(plugin.id, { updates: [{ meta: ['time', 'energyTime', 'waterTime', ...Object.keys(modules).map(k => `resources.${k}.time`)].map(p => ({ path: `${base}.${p}`, value: { units: 's', description: 'Estimated duration; null when unavailable. Fuel engine time is excluded.' } })) }] });
     app.handleMessage(plugin.id, { updates: [{ meta: Object.keys(modules).filter(k=>k !== 'energy').flatMap(k => ['capacityM3', 'currentVolumeM3', 'availableVolumeM3', 'freeVolumeM3', 'levelRatio'].map(field => ({ path: `${base}.resources.${k}.totals.${field}`, value: { units: field === 'levelRatio' ? 'ratio' : 'm3', description: field === 'levelRatio' ? 'Combined current volume divided by combined full capacity' : 'Combined tank volume in cubic metres; null if incomplete' } }))) }] });
     app.handleMessage(plugin.id,{updates:[{meta:[{path:`${base}.resources.freshwater.consumptionRate`,value:{units:'m3/s',description:'Estimated total freshwater usage rate; inspect rateSource for default, learning, learned or external'}}]}]});
-    app.handleMessage(plugin.id,{updates:[{meta:[{path:`${base}.estimatedDays`,value:{units:'d',description:'Convenience conversion of authoritative time in seconds; null when unavailable'}},...Object.keys(modules).map(k=>({path:`${base}.resources.${k}.estimatedDays`,value:{units:'d',description:'Convenience conversion of resource time; fuel running time is excluded'}})),{path:`${base}.resources.fuel.engineTime`,value:{units:'s',description:'Engine running duration at the selected fuel rate, to empty; excluded from calendar endurance'}},{path:`${base}.resources.fuel.consumptionRate`,value:{units:'m3/s',description:'Selected total fuel consumption rate'}}]}]});
+    app.handleMessage(plugin.id,{updates:[{meta:[{path:`${base}.estimatedDays`,value:{units:'d',description:'Convenience conversion of authoritative time in seconds; null when unavailable'}},...Object.keys(modules).map(k=>({path:`${base}.resources.${k}.estimatedDays`,value:{units:'d',description:k === 'fuel' ? 'Engine running days to empty: engineTime / 86400; excluded from calendar endurance' : 'Convenience conversion of authoritative resource time / 86400; null when unavailable'}})),{path:`${base}.resources.fuel.engineTime`,value:{units:'s',description:'Engine running duration at the selected fuel rate, to empty; excluded from calendar endurance'}},{path:`${base}.resources.fuel.consumptionRate`,value:{units:'m3/s',description:'Selected total fuel consumption rate'}}]}]});
     tick();
     timer = setInterval(tick, config.intervalSeconds * 1000);
   };

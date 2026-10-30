@@ -39,7 +39,7 @@ npm install github:SCarns/signalk-endurance
 Or install a downloaded package with:
 
 ```sh
-npm install /absolute/path/signalk-endurance-1.1.0.tgz
+npm install /absolute/path/signalk-endurance-1.2.0.tgz
 ```
 
 Restart Signal K, enable **Endurance** in **Server → Plugin Config**, then open its
@@ -312,7 +312,10 @@ Under the selected preview/live prefix:
   days (`d` metadata), derived only by dividing existing valid seconds by 86400.
   Seconds remain authoritative; no second estimator or rounding is applied. Null,
   missing, or invalid estimates publish null, and zero seconds publishes zero days.
-  Fuel and propane/holding without an existing duration publish null. Overall days
+  Fuel days converts `resources.fuel.engineTime` (engine running seconds), not
+  calendar endurance. Propane days converts `resources.propane.time`; the current
+  level-only propane monitor has no duration estimate and therefore publishes null.
+  Holding without an existing duration also publishes null. Overall days
   remains the minimum available water/battery estimate, not an all-resource guarantee.
 - `resources.fuel.engineTime`: engine running seconds to empty at the selected fuel
   rate, or null. `resources.fuel.consumptionRate`: m³/s or null. These do not affect
@@ -370,3 +373,20 @@ To roll back, preserve your plugin options and learned usage file, install
 `signalk-endurance@1.0.2` in the Signal K configuration directory, and restart.
 Remove the new fuel `ratePath` and learning `crewSource` settings if the older server
 configuration validator rejects them. Keep preview/live path selection consistent.
+
+### Upgrade to 1.2.0
+
+- Disabled resources no longer have dashboard cards. Remaining cards fill the
+  available width in the responsive webapp, including an embedded Freeboard view.
+  Enabled resources with missing or stale data remain visible.
+- `environment.endurance.resources.fuel.estimatedDays` converts valid
+  `resources.fuel.engineTime` directly by dividing by 86400. These are engine
+  running days to empty, not calendar days.
+- `environment.endurance.resources.propane.estimatedDays` converts valid
+  `resources.propane.time` by 86400; it remains null with the current level-only
+  monitor. No consumption model or tank-percentage duration estimate is added.
+- The same paths are available under `environment.endurancePreview`. Existing
+  seconds, freshwater days, assessments, alerts and optional integrations remain.
+
+Passage Brief passage-readiness integration is a future Endurance 2.0 concept
+  and is not included in this release.

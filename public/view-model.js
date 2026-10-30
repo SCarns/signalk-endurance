@@ -26,7 +26,7 @@
     if(expired){title='Waiting for a fresh update';tone='neutral';message='The last assessment is out of date. The readings below are from the previous update.';}
     if(connectionLost){title='Connection unavailable';tone='neutral';message='Current conditions cannot be confirmed. Any readings below are from the previous update.';}
     const alerts=unavailable?[]:monitored.filter(k=>['CRITICAL','WARNING'].includes(resources[k].status)).sort((x,y)=>(resources[x].status==='CRITICAL'?0:1)-(resources[y].status==='CRITICAL'?0:1)).map(k=>({name:names[k],message:resources[k].message}));
-    const cards=Object.entries(names).map(([key,name])=>{
+    const cards=Object.entries(names).filter(([key])=>running && Object.hasOwn(resources,key)).map(([key,name])=>{
       const r=running?resources[key]:null;
       const states={OK:['Healthy','good'],WATCH:['Monitoring','watch'],WARNING:['Plan ahead','warning'],CRITICAL:['Act now','critical'],UNKNOWN:['No data','neutral']};
       const badge=connectionLost?['Last known','neutral']:expired?['Out of date','neutral']:r?(states[r.status]||states.UNKNOWN):['Not monitored','neutral'];

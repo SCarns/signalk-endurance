@@ -1,3 +1,13 @@
+## 1.2.0
+
+- Hide disabled resource cards and let remaining cards fill responsive rows,
+  including embedded Freeboard views. Keep enabled resources visible without data.
+- Convert authoritative fuel engine running seconds to estimatedDays; retain all
+  seconds outputs and existing freshwater days. Propane days remains a direct
+  conversion of its time, or null when no estimate exists. No new estimators.
+- Preserve assessment, notification and optional integration behavior. Passage
+  Brief passage-readiness remains a future Endurance 2.0 concept.
+
 ## 1.1.0
 
 - Publish Endurance-specific estimatedDays from authoritative existing seconds,

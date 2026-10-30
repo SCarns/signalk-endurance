@@ -37,7 +37,7 @@ function assessFuel(entries,extra={}){const app=fixture(entries),config=normaliz
 test('configured existing fuel rate gives running hours without changing chronological or level decisions',()=>{
  const r=assessFuel(fuelEntries);assert.ok(Math.abs(r.engineTime-360000)<1e-8);assert.equal(r.time,null);assert.equal(r.status,'OK');assert.equal(decide({fuel:r}).time,null);
  const card=build({running:true,assessment:{timestamp:stamp,status:'OK',resources:{fuel:r}}},'litres',now).cards.find(c=>c.key==='fuel');assert.equal(card.facts.at(-1).value,'100 hours to empty');
- const values=run(fixture(fuelEntries),{resources:{fuel:{ratePath:'propulsion.main.fuel.rate'}}}).values;assert.ok(values.find(v=>v.path.endsWith('.fuel.engineTime')).value>0);assert.equal(values.find(v=>v.path.endsWith('.fuel.estimatedDays')).value,null);
+ const values=run(fixture(fuelEntries),{resources:{fuel:{ratePath:'propulsion.main.fuel.rate'}}}).values;assert.ok(values.find(v=>v.path.endsWith('.fuel.engineTime')).value>0);assert.equal(values.find(v=>v.path.endsWith('.fuel.estimatedDays')).value,values.find(v=>v.path.endsWith('.fuel.engineTime')).value/86400);
  const critical=assessFuel(fuelEntries.map(e=>e[0].endsWith('currentLevel')?[e[0],.1]:e));assert.equal(critical.status,'CRITICAL');
 });
 test('fuel rejects missing, stale, invalid, stopped and runtime-only rates; empty supply is zero running time',()=>{
@@ -79,4 +79,28 @@ test('holding keeps full tank alerts with missing selected tanks and never inven
  const config=normalize({resources:{holding:{tanks:['a','b'].map(id=>({levelPath:`tanks.holding.${id}.currentLevel`}))}}}).resources.holding;
  const app=fixture([['tanks.holding.a.currentLevel',.95],['tanks.holding.a.capacity',.1]]);
  const r=holding(config,app,{path:'',reason:'CHOOSE_SOURCE'},now);assert.equal(r.status,'CRITICAL');assert.equal(r.action,'PUMP_OUT_NOW');assert.equal(r.totals.freeVolumeM3,null);assert.equal(r.time,null);assert.equal(r.tanks[1].status,'UNKNOWN');
+});
+
+test('fuel and propane days retain authoritative seconds and clear invalid estimates in both modes',()=>{
+ for(const publishLive of [false,true])for(const entries of [fuelEntries, fuelEntries.map(e=>e[0].endsWith('currentLevel')?[e[0],0]:e),fuelEntries.map(e=>[...e,1201]),fuelEntries.slice(0,2),[],[...fuelEntries.slice(0,2),['propulsion.main.fuel.rate',null]]]){
+  const {values,meta}=run(fixture(entries),{publishLive,resources:{fuel:{ratePath:'propulsion.main.fuel.rate'}}});
+  const base=publishLive?'environment.endurance':'environment.endurancePreview';
+  const get=s=>values.find(v=>v.path===`${base}.resources.${s}`).value;
+  assert.equal(get('fuel.estimatedDays'),get('fuel.engineTime')===null?null:get('fuel.engineTime')/86400);
+  assert.equal(get('fuel.time'),null);
+  assert.equal(get('propane.estimatedDays'),get('propane.time')===null?null:get('propane.time')/86400);
+  for(const key of ['fuel','propane'])assert.equal(meta.find(m=>m.path===`${base}.resources.${key}.estimatedDays`).value.units,'d');
+ }
+ for(const key of ['fuel','propane'])assert.equal(run(fixture(fuelEntries),{resources:{[key]:{enabled:false}}}).values.find(v=>v.path.endsWith(`.${key}.estimatedDays`)).value,null);
+});
+
+test('propane convenience conversion accepts only finite nonnegative authoritative seconds',()=>{
+ const {readFileSync}=require('node:fs'),vm=require('node:vm');
+ // Supply monitor results at the publication boundary; no propane estimator is added.
+ for(const seconds of [0,43200,453600,null,undefined,-1,'86400',NaN,Infinity]){
+  const sandbox={module:{exports:{}},require:p=>p==='./lib/resources/propane'?()=>({status:'OK',action:'NONE',reason:'LEVEL_HEALTHY',time:seconds,totals:{}}):require(p.startsWith('./')?'../'+p.slice(2):p),setInterval,clearInterval};
+  vm.runInNewContext(readFileSync(require.resolve('..'),'utf8'),sandbox);
+  const messages=[];const plugin=sandbox.module.exports({getSelfPath:()=>undefined,handleMessage:(_,d)=>messages.push(d),setPluginStatus:()=>{},setPluginError:e=>{throw Error(e)}});
+  try{plugin.start({});const values=messages.at(-1).updates[0].values;assert.equal(values.find(v=>v.path.endsWith('.propane.estimatedDays')).value,typeof seconds==='number'&&Number.isFinite(seconds)&&seconds>=0?seconds/86400:null);assert.equal(values.find(v=>v.path.endsWith('.propane.time')).value,seconds);}finally{plugin.stop();}
+ }
 });

@@ -11,7 +11,7 @@ test('selected display units convert SI readings without altering server values'
 test('all alerts appear with critical before warning',()=>{const view=build(payload({fuel:{status:'WARNING',message:'Plan refuel.',totals:{}},holding:{status:'CRITICAL',message:'Pump out now.',totals:{}}}),'litres',now);assert.deepEqual(view.alerts.map(a=>a.name),['Holding tanks','Fuel']);});
 test('partial resource coverage never claims an unqualified all clear',()=>{const view=build(payload({freshwater:water,fuel:{status:'UNKNOWN',totals:{}}}),'litres',now);assert.equal(view.title,'Available readings look healthy');assert.match(view.message,/Fuel/);assert.equal(view.coverage,'1 of 2 resources reporting');});
 test('outdated or failed connections neutralize summary and badges and suppress live alerts',()=>{const p=payload({fuel:{status:'CRITICAL',message:'Refuel.',totals:{}}});const expired=build(p,'litres',now+31000);assert.equal(expired.title,'Waiting for a fresh update');assert.equal(expired.alerts.length,0);assert.equal(expired.cards.find(c=>c.key==='fuel').badge,'Out of date');const lost=build(p,'gallons',now,true);assert.equal(lost.title,'Connection unavailable');assert.equal(lost.cards.find(c=>c.key==='fuel').badge,'Last known');assert.equal(lost.alerts.length,0);});
-test('stopped or disabled resources are clear and no previous values leak into stopped cards',()=>{const view=build(payload({freshwater:water},{running:false,assessment:null}),'litres',now);assert.equal(view.title,'Endurance is not running');assert.equal(view.cards[1].metric.value,'Not monitored');});
+test('stopped or disabled resources are clear and no previous values leak into stopped cards',()=>{const view=build(payload({freshwater:water},{running:false,assessment:null}),'litres',now);assert.equal(view.title,'Endurance is not running');assert.deepEqual(view.cards,[]);});
 test('holding space is shown with the fullest individual tank',()=>{const r={status:'CRITICAL',totals:{capacityM3:.4,freeVolumeM3:.305},tanks:[{name:'A',levelRatio:.95,currentVolumeM3:.095,capacityM3:.1,status:'CRITICAL',message:'Pump out now.'},{name:'B',levelRatio:0,currentVolumeM3:0,capacityM3:.3,status:'OK'}]};const card=build(payload({holding:r}),'litres',now).cards.find(c=>c.key==='holding');assert.equal(card.metric.value,'305');assert.equal(card.facts[0].value,'95%');assert.equal(card.tanks[0].issue,'Pump out now.');});
 test('single fuel tank with only a level still has a useful percentage',()=>{const card=build(payload({fuel:{status:'OK',totals:{},tanks:[{levelRatio:.6,status:'OK'}]}}),'litres',now).cards.find(c=>c.key==='fuel');assert.equal(card.metric.value,'60%');});
 test('read-only users can view assessment while discovery remains an admin route',()=>{const routes=[];const router={get:(p,h)=>routes.push({scope:'admin',p,h}),access:scope=>({get:(p,h)=>routes.push({scope,p,h})})};create({}).registerWithRouter(router);assert.equal(routes.find(r=>r.p==='/assessment').scope,'readonly');assert.equal(routes.find(r=>r.p==='/discovery').scope,'admin');routes.find(r=>r.p==='/assessment').h({}, {json:r=>{assert.equal(r.running,false);assert.equal(r.display.volumeUnits,'litres');}});});
@@ -20,4 +20,29 @@ test('Auto display follows vessel mode and uses red only at night while sailing 
 });
 test('viewer response includes only the vessel state values needed for Auto theme',()=>{
  const routes={};create({getSelfPath:p=>p==='environment.mode'?{value:'night'}:p==='navigation.state'?{value:'sailing'}:undefined}).registerWithRouter({get:(p,h)=>routes[p]=h});routes['/assessment']({}, {json:r=>{assert.equal(r.display.environmentMode,'night');assert.equal(r.display.navigationState,'sailing');assert.equal(r.display.volumeUnits,'litres');}});
+});
+
+test('only enabled assessment resources have cards, including unavailable resources',()=>{
+ const resources={energy:{status:'UNKNOWN'},propane:{status:'UNKNOWN',time:null,totals:{}}};
+ const p=payload(resources);
+ for(const [when,lost] of [[now,false],[now+31000,false],[now,true]]){
+  const view=build(p,'litres',when,lost);
+  assert.deepEqual(view.cards.map(c=>c.key),['energy','propane']);
+ }
+ assert.deepEqual(build(payload({}),'litres',now).cards,[]);
+ assert.equal(build(payload({freshwater:water}),'litres',now).cards.length,1);
+});
+
+test('configuration toggles remove only disabled cards across all resource combinations',()=>{
+ const keys=['energy','freshwater','fuel','propane','holding'];
+ for(let mask=0;mask<32;mask++){
+  const resources=Object.fromEntries(keys.map((k,i)=>[k,{enabled:!!(mask&(1<<i))}]));
+  const routes={};const app={getSelfPath:()=>undefined,handleMessage:()=>{},setPluginStatus:()=>{},setPluginError:e=>{throw Error(e)}};
+  const plugin=create(app);plugin.registerWithRouter({get:(p,h)=>routes[p]=h});
+  try{plugin.start({resources});routes['/assessment']({}, {json:p=>{
+   const cards=build(p,'litres').cards;
+   assert.deepEqual(cards.map(c=>c.key),keys.filter(k=>resources[k].enabled));
+   assert.ok(cards.every(c=>c.badge==='No data'));
+  }});}finally{plugin.stop();}
+ }
 });
