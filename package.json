@@ -1,6 +1,6 @@
 {
   "name": "signalk-endurance",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Vessel resource monitoring and passage readiness for Signal K",
   "main": "index.js",
   "license": "MIT",

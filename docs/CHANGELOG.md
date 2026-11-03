@@ -1,3 +1,8 @@
+## 2.2.0
+
+- Use Endurance’s existing Auto theme and shared day/night/red palette in the compact chart window. Follow vessel day/night and navigation state rather than Freeboard’s separate chart appearance.
+- Remove the redundant full-dashboard link and additional dashboard window from the chart integration. The standalone Endurance dashboard remains available as usual.
+
 ## 2.1.0
 
 - Add a right-side hourglass control and compact status window through Freeboard’s existing Plotter Extensions API. Reuse Endurance’s current resource assessment and passage-readiness results.

@@ -1,13 +1,8 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
-test('panel follows trusted Freeboard dark and light events, ignoring other windows and origins',()=>{
-  const events={},messages=[],night=[];const parent={postMessage:message=>messages.push(message)};
-  const context={window:{},parent,location:{origin:'https://boat'},document:{getElementById:()=>({}),body:{classList:{toggle:(name,value)=>night.push([name,value])}}},EnduranceDashboardLink:{connect:()=>({handshake(){},receive(){},dispose(){}})},EnduranceReserve:{createReader:()=>()=>[]},setTimeout(){},clearTimeout(){},setInterval(){},clearInterval(){},addEventListener:(name,fn)=>{events[name]=fn;},fetch:()=>new Promise(()=>{}),AbortSignal};
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../public/plotterext/panel.js'),'utf8'),context);
-  const send=(msg,extra={})=>events.message({source:parent,origin:'https://boat',data:{bus:'plotterExt/1',msg},...extra});
-  send({method:'bus.handshake',params:{capabilities:['nightMode','windows']}});
-  assert.ok(messages.some(m=>m.msg.method==='nightMode.get'));assert.ok(messages.some(m=>m.msg.method==='events.subscribe'&&m.msg.params.patterns.includes('nightMode.changed')));
-  send({id:'theme',result:{enabled:true}});send({method:'nightMode.changed',params:{enabled:false}});send({method:'nightMode.changed',params:{enabled:true}});
-  assert.deepEqual(night,[['night',true],['night',false],['night',true]]);
-  send({method:'nightMode.changed',params:{enabled:false}},{source:{}});send({method:'nightMode.changed',params:{enabled:false}},{origin:'https://other'});assert.equal(night.length,3);
-});
+const read=name=>fs.readFileSync(path.join(__dirname,'../public/',name),'utf8');
+function theme(automaticOnly,preference){const events={},root={dataset:{}};const context={window:{},document:{currentScript:{hasAttribute:()=>automaticOnly},documentElement:root,querySelector:()=>null,getElementById:()=>null,addEventListener:(name,fn)=>{events[name]=fn;}},localStorage:{getItem:()=>preference}};vm.runInNewContext(read('theme.js'),context);return {context,root,events};}
+test('compact Auto uses the shared vessel-based theme, ignoring standalone manual overrides',()=>{const f=theme(true,'day');assert.equal(f.root.dataset.theme,'night');for(const [environmentMode,navigationState,expected] of [['night','moored','night'],['night','anchored','night'],['night','sailing','red'],['night','motoring','red'],['day','motoring','day'],[null,null,'night']]){f.context.window.EnduranceTheme.update({environmentMode,navigationState});assert.equal(f.root.dataset.theme,expected);}assert.doesNotThrow(()=>f.events.DOMContentLoaded());});
+test('standalone dashboard retains its saved manual theme',()=>{const f=theme(false,'day');f.context.window.EnduranceTheme.update({environmentMode:'night',navigationState:'sailing'});assert.equal(f.root.dataset.theme,'day');});
+test('compact panel loads shared Auto theme and no redundant dashboard link or host-theme calls',()=>{const html=read('plotterext/panel.html'),script=read('plotterext/panel.js');assert.match(html,/theme.js" data-auto-theme/);assert.match(html,/themes.css/);assert.doesNotMatch(html,/<a\b|dashboard-link/);assert.doesNotMatch(script,/nightMode|postMessage|openWindow/);assert.match(script,/EnduranceTheme.update\(payload.display\)/);});
+test('extension declares a single compact panel',async()=>{let provider;require('../lib/plotter-extension')({registerResourceProvider:p=>{provider=p;}},()=>true)();const manifest=await provider.methods.getResource('signalk-endurance');assert.equal(manifest.panels.length,1);assert.equal(manifest.panels[0].id,'endurance-status');});

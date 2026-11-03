@@ -12,8 +12,9 @@
   }
   const next=mode=>modes[(modes.indexOf(normalize(mode))+1)%modes.length];
   if(typeof module==='object'&&module.exports){module.exports={resolve,next,normalize};return;}
+  const automaticOnly=document.currentScript?.hasAttribute('data-auto-theme')===true;
   let mode='auto',environmentMode=null,navigationState=null;
-  try{mode=normalize(localStorage.getItem('endurance.display.theme'));}catch{}
+  try{if(!automaticOnly)mode=normalize(localStorage.getItem('endurance.display.theme'));}catch{}
   const label=value=>value[0].toUpperCase()+value.slice(1);
   function apply(){
     const effective=resolve(mode,environmentMode,navigationState);
@@ -28,5 +29,5 @@
   window.EnduranceTheme={update(data={}){environmentMode=data.environmentMode;navigationState=data.navigationState;apply();}};
   apply();
   function select(value){mode=value;try{localStorage.setItem('endurance.display.theme',mode);}catch{}apply();}
-  document.addEventListener('DOMContentLoaded',()=>{apply();document.getElementById('theme').addEventListener('click',()=>{const effective=resolve(mode,environmentMode,navigationState);select({day:'night',night:'red',red:'day'}[effective]);});document.getElementById('theme-auto').addEventListener('click',()=>select('auto'));});
+  document.addEventListener('DOMContentLoaded',()=>{apply();document.getElementById('theme')?.addEventListener('click',()=>{const effective=resolve(mode,environmentMode,navigationState);select({day:'night',night:'red',red:'day'}[effective]);});document.getElementById('theme-auto')?.addEventListener('click',()=>select('auto'));});
 })();
