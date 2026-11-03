@@ -1,3 +1,8 @@
+## 2.2.2
+
+- Accept the obsolete saved `passage.routeId` during configuration validation, then remove it when migrating and saving settings. Preserve valid passage, resource, unit, and notification settings so upgrades do not require resetting configuration.
+- Add regression coverage for legacy upgrades and subsequent settings saves.
+
 ## 2.2.1
 
 - Remove the route-ID override from Plugin Config. Use the browser’s planning selection or the active route; ignore retired saved overrides.

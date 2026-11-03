@@ -1,6 +1,6 @@
 {
   "name": "signalk-endurance",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "Vessel resource monitoring and passage readiness for Signal K",
   "main": "index.js",
   "license": "MIT",
@@ -46,6 +46,9 @@
     "url": "https://github.com/SCarns/signalk-endurance/issues"
   },
   "author": "SCarns",
+  "devDependencies": {
+    "ajv": "^8.17.1"
+  },
   "publishConfig": {
     "tag": "latest"
   }
