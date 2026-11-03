@@ -6,6 +6,11 @@ Endurance watches your boat’s power, water, fuel, propane, and holding tanks�
 
 Endurance is a standalone Signal K plugin that supports multiple tanks and calculates their combined capacity and volume.
 
+Endurance 2.0 also helps you plan: choose a passage and see how its estimated
+resource demand compares with what you have aboard and the reserves you want to
+keep. Its optional Passage Readiness dashboard uses supported upstream estimates,
+with separate resource cards showing shortfalls, sources and forecast limits.
+
 When installed, Energy Predictor, Consumption Estimator, and Derived Data can provide additional forecasts and measurements. These plugins are optional.
 
 Endurance also publishes its assessments to Signal K, so you can put the information
@@ -20,11 +25,20 @@ and estimated time alongside the instruments you already use.
 - **[Derived Data](https://github.com/SignalK/signalk-derived-data)** supplies additional measurements, including calculated tank volumes when configured.
 - **[Energy Predictor](https://github.com/meri-imperiumi/signalk-energy-predictor)** adds energy forecasts and advance charging warnings.
 - **[Water Consumption Estimator](https://github.com/meri-imperiumi/signalk-consumption-estimator)** can supply freshwater consumption estimates through configured external paths.
+- **[Weather Router Plus (WRP)](https://github.com/motamman/signalk-weather-router-plus)** supplies published passage duration and sailing/motoring estimates. Select a saved WRP route in Passage Readiness to compare its resource demand with onboard supplies and reserves. Its routing coverage and forecast limits still apply.
+- **[Passage Briefing (Passage Brief)](https://github.com/meri-imperiumi/signalk-passage-briefing)** supplies its configured motor fuel burn as a planning fallback in the passage dashboard when no explicit Endurance override or positive live rate is available. Reading that setting requires the viewer's existing Signal K login. Completed Passage Brief simulation profiles are not yet imported.
 
 - **[Log Book](https://github.com/meri-imperiumi/signalk-logbook)** records Signal K alerts when they are raised and cleared, including Endurance alerts when live publishing and notifications are enabled. It also records crew changes. Endurance reads the shared crew roster: when using its own water-usage learning, it adjusts the starting allowance for the number aboard and learns separate usage rates for each crew size. If Water Consumption Estimator supplies the usage estimate, Endurance uses that total directly without applying crew count again.
 
-All four are optional. Endurance monitors resources on its own and includes its own
+All of these are optional. Endurance monitors resources on its own and includes its own
 boat-wide freshwater usage estimation. No companion plugin is required.
+
+**Planned: [RouteIQ](https://github.com/marcelrv/signalk-routeiq)** could supply
+inland passage timing, including lock and bridge waits. It is not yet a supported
+Endurance integration: saved routes currently omit its calculated duration and
+wait estimates. Export support is tracked in [RouteIQ issue #50](https://github.com/marcelrv/signalk-routeiq/issues/50).
+RouteIQ is therefore not advertised as a working integration in the App Store's
+Works with recommendations. Travel time alone also does not establish engine hours.
 
 ## Install
 
@@ -388,5 +402,157 @@ configuration validator rejects them. Keep preview/live path selection consisten
 - The same paths are available under `environment.endurancePreview`. Existing
   seconds, freshwater days, assessments, alerts and optional integrations remain.
 
-Passage Brief passage-readiness integration is a future Endurance 2.0 concept
-  and is not included in this release.
+Completed passage-profile integration with Passage Brief remains future work;
+its configured fuel burn is available as the optional dashboard fallback below.
+
+## Passage Readiness — 2.0
+
+Passage Readiness asks whether the resources you monitor can cover a selected
+passage while retaining your configured reserves. It is optional and disabled by
+default. Existing Endurance assessments, alerts, duration estimates and decisions
+continue independently. Current route-profile support is limited to published
+Weather Router Plus estimates; the source and forecast limitations below apply.
+
+Enable `passage.enabled` in plugin configuration. Leave `passage.routeId` blank to
+read Signal K’s Course API (`app.getCourse().activeRoute`), with
+`navigation.course.activeRoute` fallback on older servers, or supply a route resource ID to assess a
+saved plan. For this increment, publish a Weather Router Plus route to Signal K
+Resources first. Endurance reads it through `app.resourcesApi.getResource('routes',
+id)`; it never requests a new route, chooses a route alternative, or changes the
+active route. Unsupported or absent route metadata produces an unknown result.
+The dashboard shows Passage Readiness separately from the existing assessment.
+Its full-width passage summary shows the overall outlook, duration, navigation
+context and current position. Individual Power, Freshwater, Fuel and other enabled
+resource cards below it show the relevant demand, reserves, source and forecast
+coverage. Missing estimates stay explicitly unavailable; these cards do not change
+the underlying assessment or alerts.
+The plugin's `/assessment` endpoint includes `assessment.passage`; the corresponding
+Signal K object is `environment.endurancePreview.passage` in preview mode or
+`environment.endurance.passage` in live mode. Passage results do not raise alerts.
+
+- **Fuel:** selected usable volume minus reserve, compared with total forecast
+  engine hours at the existing configured total fuel consumption rate. A current
+  measured rate may differ from passage engine loading; this is an estimate.
+  For dockside planning, optionally set `passage.fuelLitresPerHour` to your
+  estimated burn at planned motoring speed, in liters/hour. A positive value is
+  explicitly identified as a planning estimate and applies only to passage fuel
+  demand; `0` (default) uses automatic source selection described below. This does not
+  replace your engine's live Signal K rate, standalone fuel endurance or alerts.
+  An engine-stopped live rate of zero cannot establish future motoring fuel use.
+  The dashboard's **Fuel allowance** choice can instead budget engine use for
+  the **full planned duration**. This multiplies the same burn rate by total
+  upstream passage time and still retains your fuel reserve. It leaves the
+  sailing forecast, arrival time, water demand and energy forecast unchanged.
+  It is a conservative fuel scenario relative to that plan's motoring allocation,
+  not a verified all-motor ETA or a guarantee against a longer passage. Choose a
+  suitably conservative burn rate for your intended engine use. The allowance is
+  remembered in this browser and does not change navigation or the background
+  published passage assessment, which continues using upstream motoring hours.
+  With automatic selection, the passage dashboard first uses a fresh positive
+  live rate. If none is available, it tries Passage Brief's configured
+  `motor_fuel_l_per_hour` through its existing `/api/config` endpoint. This requires
+  the viewer's existing Signal K login and permission to read that endpoint.
+  The pane labels **Passage Brief setting** when used. Settings are refreshed at
+  most once per minute; failed, unauthorized or invalid reads clear that fallback.
+  No login token is copied or extra permission requested. This browser-based
+  fallback is for the displayed plan; the background Signal K passage object
+  continues using the live rate or an explicit Endurance planning override.
+  Standalone fuel endurance and alerts never use this fallback. A positive live
+  rate can itself be an RPM-derived estimate, and idling consumption may not
+  represent future cruise load; use an explicit planning override when needed.
+- **Freshwater:** combined supply minus reserve, compared with full route duration
+  at Endurance's existing total usage rate. Crew allowance is already incorporated
+  by the existing water module; it is not multiplied again. Rate source remains
+  visible in the assessment.
+- **Electrical energy:** fresh Energy Predictor hourly `detectedSoC` values are
+  compared against the energy reserve, including current measured SOC. A later
+  recovery cannot conceal a predicted reserve crossing. The forecast source,
+  covered duration and uncovered duration are reported. Stale, malformed or
+  missing forecasts cannot prove coverage.
+- **Propane/LPG and holding:** monitored levels and reserves remain available,
+  but this increment has no verified consumption/accumulation-rate provider for
+  these resources. They cannot be marked sufficient without that information.
+
+Passage reserves use the resource warning thresholds. Disabled resources are
+excluded; sufficient means only the enabled resources with the available data.
+Missing resource data yields **UNKNOWN**, predicted reserve failure yields
+**SHORTFALL**, and limited electrical coverage or unverified passage loads yields
+**PROVISIONAL**. Neither unknown nor provisional means a demonstrated shortage.
+No resources enabled also yields unknown.
+
+Endurance refreshes the selected resource and reassesses against current supplies
+on its normal update interval (route reads have a five-second timeout). It gives
+**no progress credit**: it retains the full route duration and full engine hours
+until you select/publish a revised plan. This conservative first step avoids
+mistaking elapsed clock time for actual progress, especially after delays. Routes
+whose scheduled arrival has passed must be revised. A future departure requires
+forecast coverage at that departure, rather than coverage only from now.
+
+Energy Predictor remains the only energy prediction engine. Its current forecast
+is not verified to incorporate this route's planned motoring, alternator schedule,
+watermaker demand or vessel positions along the route. Therefore a healthy
+forecast stays provisional even when its horizon covers the passage. Endurance
+adds no assumed charging, no watermaker model, and no forecast extrapolation.
+
+### Integration support verified for this increment
+
+| Integration | Verified interface | Current support |
+| --- | --- | --- |
+| Weather Router Plus | Published route `feature.properties` contains `source`, `total_time_s`, `motoring_time_s`, `sailing_time_s`, `departure`, `arrival` | Selected Signal K route resource adapter |
+| Energy Predictor | `electrical.energy.prediction.forecast.hourly` with `time` (in-process Date or serialized ISO string), `idealSoC`, `detectedSoC`; `weather.validTo` and `weather.source` under the same prediction base | Read detected-equipment track and explicit horizon; no prediction or schedule submission |
+| Passage Briefing (Passage Brief) | `/plugins/signalk-passage-briefing/api/config` exposes `motor_fuel_l_per_hour`; `/api/briefing` supplies cached briefing inputs | Dashboard fuel-setting fallback through the viewer's session; no completed passage-profile adapter. Do not interpret briefing weather horizon as completed passage duration |
+| RouteIQ | Route result has optional `totalSeconds`, `totalWaitSeconds`, `departureTime`, `arrivalTime` | Investigated; no adapter yet. Travel duration does not establish sailing/motoring allocation |
+
+Source versions and remaining integration work are recorded in
+[Passage integration notes](docs/passage-integrations.md).
+
+### Installing or upgrading to 2.0
+
+Install or update Endurance from Signal K's App Store. Version **2.0.0** is the
+stable release on npm's `latest` tag. Alternatively, install
+`signalk-endurance@2.0.0` from your Signal K configuration directory and restart
+the server. Passage Readiness remains disabled until you enable it in plugin
+configuration; existing resource monitoring continues without it.
+
+To return to 1.2.0, select **1.2.0** in Versions or install
+`signalk-endurance@1.2.0`, then restart Signal K. No existing resource settings or
+learned usage history are intentionally migrated by this release.
+
+### Choose a passage from the dashboard
+
+The existing boat summary and **Your Resources** cards remain first. The separate
+**Passage Readiness** section below them has a saved-route dropdown. Enable
+Passage Readiness in Settings, then choose a route by name. When Signal K has an active route, **Active route**
+appears first, followed by all saved routes. With no remembered selection or
+configured route, Active route is selected by default. That choice follows changes
+to the active route; choosing a named route keeps that specific passage selected.
+If navigation stops, the active choice reports that no route is active instead of
+reusing the previous passage. Known saved distances
+appear in nautical miles. Use **Refresh routes** after saving or publishing a new
+route. Routes without supported passage estimates remain visible with an explanation.
+
+Your dashboard selection is remembered in that browser. It assesses the selected
+route without activating it, modifying Freeboard, or changing another display's
+selection. The configured route ID is used as an initial choice when no browser
+selection has been saved. Dashboard selection does not change the background
+Signal K passage publication, which still follows the configured route or active
+Course API route. Read-only viewers can use the picker.
+
+For the selected passage, Endurance shows whether Signal K is following that same
+route, the next waypoint when the Course API reports it, direction when reversed,
+and fresh vessel coordinates when available. These are navigation context, not
+a calculated percentage complete or a map match. Resource demand continues to use
+the full route; remaining duration and remaining motor hours require an upstream
+remaining-passage profile before progress can reduce the estimate.
+
+Passage Readiness stays hidden when no saved route has usable upstream passage
+estimates. No manual time/speed fallback is requested. Saved routes remain in the
+selector whenever upstream estimates make the section available; choosing a route
+without estimates hides its assessment. Missing resource data or limited energy
+forecast coverage within a usable passage remain visible in its resource outlook.
+
+## Freeboard integration
+
+Endurance adds an hourglass button to Freeboard’s right-side chart toolbar using the Signal K Plotter Extensions API. Click it to open a compact, resizable status window over the chart; close it with Freeboard’s window control or click the hourglass again. The window shows the existing resource assessment and passage readiness when available, without calculating a separate assessment. “Open full Endurance dashboard” opens a larger Freeboard window using its supported window API. Disabled resources stay hidden; enabled resources with unavailable data remain visible.
+
+**Enable Freeboard integration** defaults to on in Endurance’s Plugin Config. Turn it off to remove the extension without stopping monitoring, publication, or notifications. Freeboard discovers the updated extension collection; refresh the chart if your host has not refreshed discovery yet. The integration requires a host supporting toolbar buttons, iframe panels, and windows (including Freeboard 3.4.1). With no compatible chartplotter, Endurance continues normally.

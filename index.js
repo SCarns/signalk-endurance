@@ -2,19 +2,24 @@
 const { schema, normalize } = require('./lib/config');
 const {migrateOptions}=require('./lib/input-units');
 const { discover, select } = require('./lib/discovery');
+const { listRoutes, passageView } = require('./lib/passage-view');
+const { createRouteReader, assessPassage } = require('./lib/passage');
 const { decide } = require('./lib/decision');
 const {WaterUsage}=require('./lib/water-usage');
 const {storage,backupOptions}=require('./lib/usage-store');
 const days = seconds => typeof seconds === 'number' && Number.isFinite(seconds) && seconds >= 0 ? seconds / 86400 : null;
 const modules = Object.fromEntries(['energy', 'freshwater', 'fuel', 'propane', 'holding'].map(k => [k, require(`./lib/resources/${k}`)]));
 module.exports = app => {
+  const routeReader = createRouteReader(app);
   let waterUsage, store=null, lastSave=0, storageError=null;
   let timer, config, latest = null, discovery = {}, signature = null, running = false;
+  const registerExtension = require('./lib/plotter-extension')(app, () => running && config?.enableFreeboard === true);
   const plugin = { id: 'signalk-endurance', name: 'Endurance', description: 'Stop watching gauges. Go sailing.', schema };
   const prefix = () => config.publishLive ? 'environment.endurance' : 'environment.endurancePreview';
   function publish(result) {
     const base = prefix();
     const values = ['status', 'action', 'limitingResource', 'message', 'reason', 'time', 'coverage'].map(key => ({ path: `${base}.${key}`, value: result[key] }));
+    if (config.passage.enabled) values.push({ path: `${base}.passage`, value: result.passage });
     values.push({path: `${base}.estimatedDays`, value: days(result.time)});
     for (const key of Object.keys(modules)) values.push({path: `${base}.resources.${key}.estimatedDays`, value: days(key === 'fuel' ? result.resources[key]?.engineTime : result.resources[key]?.time)});
     for (const [key, r] of Object.entries(result.resources)) {
@@ -47,6 +52,15 @@ module.exports = app => {
         if (c.enabled) resources[name] = monitor(c, app, select(c, discovery[name]), now, {waterUsage,persistence:storageError?'error':store?'disk':'memory'});
       }
       latest = { ...decide(resources), timestamp: new Date(now).toISOString(), outputPrefix: prefix() };
+      if (config.passage.enabled) {
+        try {
+          latest.passage = assessPassage(routeReader.current(config.passage), resources, config, app, now);
+          void routeReader.refresh(config.passage).catch(() => {});
+        } catch (error) {
+          latest.passage = { status: 'UNKNOWN', reason: 'INTEGRATION_ERROR', resources: {} };
+          app.debug?.(`Passage Readiness unavailable: ${error.message}`);
+        }
+      }
       publish(latest);
       if(waterUsage?.dirty && now-lastSave>=300000)saveUsage(now);
       app.setPluginStatus(`${latest.status}: ${latest.message} (${latest.coverage.valid}/${latest.coverage.monitored} resources; ${config.publishLive ? 'live' : 'preview'})`);
@@ -69,6 +83,7 @@ module.exports = app => {
     try{store=storage(app);saved=store?.load()??null;}catch(e){storageError=e.message;app.debug?.(`Endurance usage history could not be loaded: ${e.message}`);}
     waterUsage=new WaterUsage(config.resources.freshwater.learning,saved);
     running = true;
+    registerExtension();
     const base = prefix();
     app.handleMessage(plugin.id, { updates: [{ meta: ['time', 'energyTime', 'waterTime', ...Object.keys(modules).map(k => `resources.${k}.time`)].map(p => ({ path: `${base}.${p}`, value: { units: 's', description: 'Estimated duration; null when unavailable. Fuel engine time is excluded.' } })) }] });
     app.handleMessage(plugin.id, { updates: [{ meta: Object.keys(modules).filter(k=>k !== 'energy').flatMap(k => ['capacityM3', 'currentVolumeM3', 'availableVolumeM3', 'freeVolumeM3', 'levelRatio'].map(field => ({ path: `${base}.resources.${k}.totals.${field}`, value: { units: field === 'levelRatio' ? 'ratio' : 'm3', description: field === 'levelRatio' ? 'Combined current volume divided by combined full capacity' : 'Combined tank volume in cubic metres; null if incomplete' } }))) }] });
@@ -79,6 +94,8 @@ module.exports = app => {
   };
   plugin.stop = () => {
     saveUsage();
+    if (running && config?.passage.enabled) app.handleMessage(plugin.id, { context: 'vessels.self', updates: [{ timestamp: new Date().toISOString(), values: [{ path: `${prefix()}.passage`, value: null }] }] });
+    routeReader.reset();
     running = false;
     if (timer) clearInterval(timer);
     timer = undefined;
@@ -87,7 +104,23 @@ module.exports = app => {
   plugin.registerWithRouter = router => {
     const viewer = typeof router.access === 'function' ? router.access('readonly') : router;
     const modeValue=path=>{const leaf=app.getSelfPath?.(path);const value=leaf?.value??leaf;return typeof value==='string'?value:null;};
-    viewer.get('/assessment', (_req, res) => res.json({ running, assessment: latest, display: { volumeUnits: config?.inputVolumeUnits || 'litres', environmentMode: modeValue('environment.mode'), navigationState: modeValue('navigation.state'), intervalSeconds: config?.intervalSeconds || 10, preview: !config?.publishLive, notifications: !!config?.publishLive && !!config?.notifications } }));
+    viewer.get('/assessment', (_req, res) => res.json({ running, assessment: latest, display: { freeboardEnabled: running && config?.enableFreeboard === true, volumeUnits: config?.inputVolumeUnits || 'litres', environmentMode: modeValue('environment.mode'), navigationState: modeValue('navigation.state'), intervalSeconds: config?.intervalSeconds || 10, preview: !config?.publishLive, notifications: !!config?.publishLive && !!config?.notifications, passageEnabled: !!config?.passage.enabled, passageRouteId: config?.passage.routeId || '' } }));
+    viewer.get('/passage/routes', async (_req,res) => {
+      if (!running || !config?.passage.enabled) return res.status(409).json({error:'Enable Passage Readiness in Settings.'});
+      try { res.json({routes:await listRoutes(app)}); } catch(error) { res.status(503).json({error:error.message}); }
+    });
+    viewer.get('/passage/assessment', async (req,res) => {
+      if (!running || !config?.passage.enabled || !latest) return res.status(409).json({error:'Enable Passage Readiness in Settings.'});
+      if (typeof req.query?.routeId !== 'string' || (req.query.routeId !== '@active' && !/^[\w:-]+$/.test(req.query.routeId))) return res.status(400).json({error:'Choose a saved route.'});
+      if (req.query.fuelBasis !== undefined && !['route-profile','full-duration'].includes(req.query.fuelBasis)) return res.status(400).json({error:'Choose a supported fuel allowance.'});
+      const rate=req.query.passageBriefFuelLitresPerHour,stamp=req.query.passageBriefFuelFetchedAt;
+      let passageBriefFuel;
+      if(rate!==undefined||stamp!==undefined){
+        if(typeof rate!=='string'||!rate.trim()||!Number.isFinite(Number(rate))||Number(rate)<=0||typeof stamp!=='string'||!Number.isFinite(Date.parse(stamp)))return res.status(400).json({error:'Invalid Passage Brief planning fuel setting.'});
+        passageBriefFuel={litresPerHour:Number(rate),fetchedAt:stamp};
+      }
+      try { res.json(await passageView(app,req.query.routeId,latest,config,Date.now(),{fuelBasis:req.query.fuelBasis,passageBriefFuel})); } catch(error) { res.status(503).json({error:error.message}); }
+    });
     router.get('/discovery', (_req, res) => res.json({ running, candidates: discovery, configuration: config || null }));
   };
   return plugin;

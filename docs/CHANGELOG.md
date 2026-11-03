@@ -1,3 +1,88 @@
+## 2.1.0
+
+- Add a right-side hourglass control and compact status window through Freeboard’s existing Plotter Extensions API. Reuse Endurance’s current resource assessment and passage-readiness results.
+- Add “Enable Freeboard integration”, default on. Switching it off withdraws the extension while resource monitoring, publication, and notifications continue.
+- Follow Freeboard’s dark/light display state and open the full dashboard through its supported window API.
+
+## 2.0.0
+
+- Document WRP and Passage Brief's supported roles and add both to Signal K's
+  Works with recommendations. Identify RouteIQ as planned support pending its
+  saved passage-profile export.
+
+- Add optional Passage Readiness: select a saved Weather Router Plus passage and
+  compare its duration and sailing/motoring profile with monitored supplies and
+  configured reserves. Existing standalone monitoring and alerts continue.
+- Include Energy Predictor's detected-SOC forecast, minimum SOC and explicit
+  horizon. Keep route-specific electrical load limitations visible.
+- Offer a full-duration engine fuel allowance and an explicit planning burn rate.
+  Automatic dashboard fuel estimates can reuse Passage Brief's setting when a
+  positive live rate is unavailable, with source and permission limits visible.
+
+- Give the passage outlook a full-width summary with timing, navigation context
+  and vessel position, followed by individual resource cards matching Your
+  Resources. Retain forecast coverage, rate provenance, reserves and missing-data
+  states. Disabled resources remain excluded and enabled resources with missing
+  estimates remain visible. RouteIQ completed-profile integration remains future
+  work. Passage Readiness is disabled by default.
+
+## 2.0.0-beta.4
+
+- When no explicit planning override or positive live rate is available, the
+  dashboard can reuse Passage Brief's configured fuel burn through the viewer's
+  existing authenticated session. Identify its source and refresh it periodically;
+  missing or inaccessible settings leave consumption unavailable.
+
+- Add a browser-specific fuel allowance for engine use throughout the upstream
+  plan's full duration. Keep the original sailing/motoring profile and ETA;
+  identify this as a fuel budget rather than an all-motor travel-time prediction.
+
+- Accept Energy Predictor's in-process Date forecast times as well as serialized
+  ISO times; preserve freshness, reserve and forecast-horizon checks.
+- Add an optional passage-only fuel burn estimate for planning while the engine
+  is stopped. Label its source and show planned fuel quantity; standalone fuel
+  endurance and alerts continue to use the configured live rate.
+
+## 2.0.0-beta.3
+
+- Keep the existing summary and Your Resources first, with Passage Readiness in
+  its own section below them.
+- Add a saved-route dropdown, with Active route first when available. Preserve
+  browser selection and follow active-route changes without activating navigation.
+- Show known route distance, Course API waypoint context and fresh vessel position.
+  Keep full-route resource demand; no inferred remaining engine hours.
+- Hide Passage Readiness when no usable upstream route estimates exist. No manual
+  planning fallback. Retain resource gaps and energy horizon limitations within a
+  usable passage assessment.
+- Current passage estimates require supported Weather Router Plus metadata.
+  Passage Brief and RouteIQ integration remain future work; inland coverage is
+  limited to available upstream profiles.
+- Publish under beta; stable 1.2.0 remains latest.
+
+## 2.0.0-beta.2
+
+- Read the active route through Signal K's Course API, as used by Freeboard.
+  Retain the data-path fallback when the Course API is unavailable on older servers.
+- Honor route cancellation, explicit selection and route changes during retrieval.
+  A stale data path cannot override an empty authoritative Course API selection.
+- Weather Router Plus route metadata is still required for passage assessment;
+  a manually drawn Freeboard route alone has no verified passage operating profile.
+- Add three Course API regression tests; existing assessments remain independent.
+
+## 2.0.0-beta.1
+
+- Add optional Passage Readiness using selected Weather Router Plus route
+  resources and existing fuel/freshwater consumption rates and reserves.
+- Read Energy Predictor hourly detected-equipment SOC forecast, report its
+  minimum and actual coverage, and retain provisional status for unverified
+  route-specific electrical loads. No duplicate routing or prediction engine.
+- Reassess current supplies periodically with conservative full-route demand.
+  Keep missing data visible and existing Endurance alerts and decisions separate.
+- Add dashboard passage details, configuration, integration documentation and
+  regression tests. Passage Briefing and RouteIQ were investigated; adapters
+  remain deferred. Live aboard validation remains outstanding.
+- Publish under the npm beta tag, retaining stable 1.2.0 as latest.
+
 ## 1.2.0
 
 - Hide disabled resource cards and let remaining cards fill responsive rows,

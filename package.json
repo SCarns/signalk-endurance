@@ -1,7 +1,7 @@
 {
   "name": "signalk-endurance",
-  "version": "1.2.0",
-  "description": "Standalone vessel resource assessment for Signal K",
+  "version": "2.1.0",
+  "description": "Vessel resource monitoring and passage readiness for Signal K",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -19,7 +19,9 @@
       "signalk-derived-data",
       "@meri-imperiumi/signalk-energy-predictor",
       "@meri-imperiumi/signalk-consumption-estimator",
-      "@meri-imperiumi/signalk-logbook"
+      "@meri-imperiumi/signalk-logbook",
+      "signalk-weather-router-plus",
+      "@meri-imperiumi/signalk-passage-briefing"
     ]
   },
   "signalk-plugin-enabled-by-default": false,
@@ -43,5 +45,8 @@
   "bugs": {
     "url": "https://github.com/SCarns/signalk-endurance/issues"
   },
-  "author": "SCarns"
+  "author": "SCarns",
+  "publishConfig": {
+    "tag": "latest"
+  }
 }

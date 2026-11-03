@@ -18,10 +18,22 @@
     <div class="summary-meta"><span id="mode" class="mode" hidden>Preview</span><p id="coverage">—</p><p id="updated">Not yet updated</p></div>
   </section>
   <div id="connection" class="notice" role="status" aria-live="polite" hidden></div>
-  <section id="attention" class="attention" aria-label="Resources needing attention" hidden><h2>Needs your attention</h2><ul id="attention-list"></ul></section>
-  <section aria-labelledby="resources-title"><div class="section-heading"><h2 id="resources-title">Your resources</h2><span id="notification-note"></span></div><div id="resources" class="resources"></div></section>
+<section id="attention" class="attention" aria-label="Resources needing attention" hidden><h2>Needs your attention</h2><ul id="attention-list"></ul></section>
+  <section aria-labelledby="resources-title"><div class="section-heading"><h2 id="resources-title">Your Resources</h2><span id="notification-note"></span></div><div id="resources" class="resources"></div></section>
+  <section id="passage" class="passage-section" hidden aria-labelledby="passage-title">
+    <div class="section-heading"><h2 id="passage-title">Passage Readiness</h2></div>
+    <div class="passage-panel">
+      <label for="passage-route">Choose a passage</label>
+      <div class="passage-controls"><select id="passage-route"><option value="">Choose a saved route…</option></select><button id="passage-routes-refresh" type="button">Refresh routes</button></div>
+      <p id="passage-route-note" class="card-note">Choosing a route here does not activate it in Freeboard.</p>
+      <label for="passage-fuel-basis">Fuel allowance</label>
+      <select id="passage-fuel-basis"><option value="route-profile">Route's predicted motoring</option><option value="full-duration">Engine use for the full planned duration</option></select>
+      <p id="passage-fuel-note" class="card-note" hidden>Budgets fuel for engine use throughout the existing passage duration. This is a planning allowance; the route's sailing forecast and arrival time stay unchanged. It does not establish an all-motor ETA.</p>
+    </div>
+    <div id="passage-result" aria-live="polite"></div>
+  </section>
 </main>
 <footer><span>Updates automatically</span><a href="https://github.com/SCarns/signalk-endurance#readme" target="_blank" rel="noopener noreferrer">Help &amp; documentation</a></footer>
 </div>
-<script src="view-model.js"></script><script src="dashboard.js"></script>
+<script src="view-model.js"></script><script src="passage-view-model.js"></script><script src="passage-fuel.js"></script><script src="reserve.js"></script><script src="dashboard.js"></script>
 </body></html>
