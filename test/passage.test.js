@@ -145,7 +145,7 @@ test('passage configuration is opt-in and validated',()=>{
   assert.equal(normalize().passage.enabled,false);
   assert.equal(normalize().passage.fuelLitresPerHour,0);
   for(const fuelLitresPerHour of [null,'1.8',-1,NaN,Infinity])assert.throws(()=>normalize({passage:{fuelLitresPerHour}}));
-  for(const passage of [{enabled:'yes'},{routeId:'../../other'}])assert.throws(()=>normalize({passage}));
+  for(const passage of [{enabled:'yes'}])assert.throws(()=>normalize({passage}));
 });
 test('individual tank reserves cannot be hidden by aggregate volume',()=>{
   const fuel=supply();fuel.assessmentMode='individual';fuel.tanks=[{levelRatio:.2},{levelRatio:.9}];

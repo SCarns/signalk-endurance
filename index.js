@@ -104,7 +104,7 @@ module.exports = app => {
   plugin.registerWithRouter = router => {
     const viewer = typeof router.access === 'function' ? router.access('readonly') : router;
     const modeValue=path=>{const leaf=app.getSelfPath?.(path);const value=leaf?.value??leaf;return typeof value==='string'?value:null;};
-    viewer.get('/assessment', (_req, res) => res.json({ running, assessment: latest, display: { freeboardEnabled: running && config?.enableFreeboard === true, volumeUnits: config?.inputVolumeUnits || 'litres', environmentMode: modeValue('environment.mode'), navigationState: modeValue('navigation.state'), intervalSeconds: config?.intervalSeconds || 10, preview: !config?.publishLive, notifications: !!config?.publishLive && !!config?.notifications, passageEnabled: !!config?.passage.enabled, passageRouteId: config?.passage.routeId || '' } }));
+    viewer.get('/assessment', (_req, res) => res.json({ running, assessment: latest, display: { freeboardEnabled: running && config?.enableFreeboard === true, volumeUnits: config?.inputVolumeUnits || 'litres', environmentMode: modeValue('environment.mode'), navigationState: modeValue('navigation.state'), intervalSeconds: config?.intervalSeconds || 10, preview: !config?.publishLive, notifications: !!config?.publishLive && !!config?.notifications, passageEnabled: !!config?.passage.enabled } }));
     viewer.get('/passage/routes', async (_req,res) => {
       if (!running || !config?.passage.enabled) return res.status(409).json({error:'Enable Passage Readiness in Settings.'});
       try { res.json({routes:await listRoutes(app)}); } catch(error) { res.status(503).json({error:error.message}); }

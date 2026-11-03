@@ -1,3 +1,10 @@
+## 2.2.1
+
+- Remove the route-ID override from Plugin Config. Use the browser’s planning selection or the active route; ignore retired saved overrides.
+
+- Make the compact chart window use the dashboard’s saved planning-route selection and fuel allowance through the existing passage-assessment endpoint, including Passage Brief’s planning fuel setting when accessible.
+- Show the passage name, readable readiness status, and planning-versus-following context. An unavailable planning assessment no longer obscures live resource status.
+
 ## 2.2.0
 
 - Use Endurance’s existing Auto theme and shared day/night/red palette in the compact chart window. Follow vessel day/night and navigation state rather than Freeboard’s separate chart appearance.

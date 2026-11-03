@@ -1,9 +1,8 @@
 'use strict';
 const $=id=>document.getElementById(id);
 let selectedPassage='',passageGeneration=0,routesLoadedAt=0,upstreamRoutes=[];
-try{selectedPassage=localStorage.getItem('endurance.passage.route')||'';}catch{}
 let passageFuelBasis='route-profile';
-try{if(localStorage.getItem('endurance.passage.fuelBasis')==='full-duration')passageFuelBasis='full-duration';}catch{}
+try{const saved=EndurancePassageSelection.read(localStorage);selectedPassage=saved.routeId;passageFuelBasis=saved.fuelBasis;}catch{}
 $('passage-fuel-basis').value=passageFuelBasis;
 $('passage-fuel-note').hidden=passageFuelBasis!=='full-duration';
 let payload=null,displayUnits=null,pollTimer=null,busy=false,connectionError=null;
@@ -85,16 +84,14 @@ async function loadRoutes(){
 }
 async function refreshPassage(){
   const token=++passageGeneration;
-  if(!$('passage-route').dataset.loaded){$('passage-route').dataset.loaded='true';if(!selectedPassage)selectedPassage=payload.display?.passageRouteId||'';await loadRoutes();}
+  if(!$('passage-route').dataset.loaded){$('passage-route').dataset.loaded='true';await loadRoutes();}
   if(Date.now()-routesLoadedAt>60000)await loadRoutes();
   if(token!==passageGeneration)return;
   if(!selectedPassage){$('passage-result').hidden=true;$('passage-result').replaceChildren();return;}
   try{
     const pbFuel=await passageBriefFuel.read();
     if(token!==passageGeneration)return;
-    const params=new URLSearchParams({routeId:selectedPassage,fuelBasis:passageFuelBasis});
-    if(pbFuel){params.set('passageBriefFuelLitresPerHour',pbFuel.litresPerHour);params.set('passageBriefFuelFetchedAt',pbFuel.fetchedAt);}
-    const p=await passageFetch('/passage/assessment?'+params);
+    const p=await passageFetch(EndurancePassageSelection.query(selectedPassage,passageFuelBasis,pbFuel));
     if(token!==passageGeneration)return;
     const labels={UNKNOWN:'More information needed',SHORTFALL:'Projected shortfall',PROVISIONAL:'Provisional outlook',SUFFICIENT:'Monitored resources cover this passage'};
     const reasons={NO_ACTIVE_ROUTE:'No route is currently active in Signal K. Choose a saved route to plan a passage.',UNSUPPORTED_ROUTE:'This route has no supported passage profile. Publish a Weather Router Plus result to add sailing and motoring estimates.',ROUTE_ENDED_OR_UNDATED:'The route schedule has ended or is undated. Update its passage estimates.',CONSUMPTION_UNAVAILABLE:'Consumption estimate unavailable',FORECAST_HORIZON:'Passage extends beyond the energy forecast',ROUTE_LOADS_UNVERIFIED:'Route-specific electrical loads are not verified',INCOMPLETE_SUPPLY:'Supply data is incomplete',NO_FORECAST_COVERAGE:'No forecast coverage for this passage',FORECAST_UNAVAILABLE:'Energy forecast unavailable'};

@@ -413,10 +413,10 @@ default. Existing Endurance assessments, alerts, duration estimates and decision
 continue independently. Current route-profile support is limited to published
 Weather Router Plus estimates; the source and forecast limitations below apply.
 
-Enable `passage.enabled` in plugin configuration. Leave `passage.routeId` blank to
-read Signal K’s Course API (`app.getCourse().activeRoute`), with
-`navigation.course.activeRoute` fallback on older servers, or supply a route resource ID to assess a
-saved plan. For this increment, publish a Weather Router Plus route to Signal K
+Enable `passage.enabled` in plugin configuration. Choose a saved planning passage
+in the dashboard, or use the active route. Background Signal K passage publication
+follows the Course API (`app.getCourse().activeRoute`), with
+`navigation.course.activeRoute` fallback on older servers. For this increment, publish a Weather Router Plus route to Signal K
 Resources first. Endurance reads it through `app.resourcesApi.getResource('routes',
 id)`; it never requests a new route, chooses a route alternative, or changes the
 active route. Unsupported or absent route metadata produces an unknown result.
@@ -533,10 +533,11 @@ route. Routes without supported passage estimates remain visible with an explana
 
 Your dashboard selection is remembered in that browser. It assesses the selected
 route without activating it, modifying Freeboard, or changing another display's
-selection. The configured route ID is used as an initial choice when no browser
-selection has been saved. Dashboard selection does not change the background
-Signal K passage publication, which still follows the configured route or active
-Course API route. Read-only viewers can use the picker.
+selection. With no saved planning selection, the active route is used when one is
+available. There is no route-ID override in Plugin Config. Existing saved overrides
+are ignored. Dashboard selection does not change background Signal K passage
+publication, which follows the active Course API route. Read-only viewers can use
+the picker.
 
 For the selected passage, Endurance shows whether Signal K is following that same
 route, the next waypoint when the Course API reports it, direction when reversed,
@@ -553,6 +554,6 @@ forecast coverage within a usable passage remain visible in its resource outlook
 
 ## Freeboard integration
 
-Endurance adds an hourglass button to Freeboard’s right-side chart toolbar using the Signal K Plotter Extensions API. Click it to open a compact, resizable status window over the chart; close it with Freeboard’s window control or click the hourglass again. The window follows Endurance Auto (Day in daylight, Night after dark, and Red while sailing or motoring at night), independently of Freeboard’s chart appearance. It shows the existing resource assessment and passage readiness when available, without calculating a separate assessment. Disabled resources stay hidden; enabled resources with unavailable data remain visible.
+Endurance adds an hourglass button to Freeboard’s right-side chart toolbar using the Signal K Plotter Extensions API. Click it to open a compact, resizable status window over the chart; close it with Freeboard’s window control or click the hourglass again. The window follows Endurance Auto (Day in daylight, Night after dark, and Red while sailing or motoring at night), independently of Freeboard’s chart appearance. It shows the existing resource assessment and passage readiness when available, without calculating a separate assessment. Passage readiness uses the planning route and fuel allowance selected in the full dashboard in the same browser, and labels planning passages separately from routes being followed. Disabled resources stay hidden; enabled resources with unavailable data remain visible.
 
 **Enable Freeboard integration** defaults to on in Endurance’s Plugin Config. Turn it off to remove the extension without stopping monitoring, publication, or notifications. Freeboard discovers the updated extension collection; refresh the chart if your host has not refreshed discovery yet. The integration requires a host supporting toolbar buttons, iframe panels, and windows (including Freeboard 3.4.1). With no compatible chartplotter, Endurance continues normally.
