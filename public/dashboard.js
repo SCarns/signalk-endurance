@@ -11,10 +11,33 @@ const readReserve=EnduranceReserve.createReader((url,options)=>fetch(url,options
 const passageBriefFuel=EndurancePassageFuel.createReader((url,options)=>fetch(url,options));
 try{displayUnits=localStorage.getItem('endurance.display.volumeUnits');}catch{}
 function el(tag,text,className){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;}
+const viewNavigation=$('view-navigation');
+const viewButtons=viewNavigation.querySelectorAll('button[aria-controls]');
+const resourcesButton=viewNavigation.querySelector('[aria-controls="resources-view"]');
+const passageButton=viewNavigation.querySelector('[aria-controls="passage"]');
+function showView(selected){
+  for(const button of viewButtons){
+    const active=button===selected;
+    button.setAttribute('aria-pressed',String(active));
+    $(button.getAttribute('aria-controls')).hidden=!active;
+  }
+}
+for(const button of viewButtons)button.addEventListener('click',()=>showView(button));
+
+function updatePassageNavigation(){
+  const available=EnduranceView.passageVisible(payload?.display?.passageEnabled,upstreamRoutes);
+  if(!available&&passageButton.getAttribute('aria-pressed')==='true'){
+    const focusWasInPassage=document.activeElement===passageButton||$('passage').contains(document.activeElement);
+    showView(resourcesButton);
+    if(focusWasInPassage)resourcesButton.focus();
+  }
+  passageButton.hidden=!available;
+}
+
 function render(){
   if(!payload)return;
   const view=EnduranceView.build(payload,displayUnits,Date.now(),!!connectionError);
-  $('passage').hidden=!EnduranceView.passageVisible(payload.display?.passageEnabled,upstreamRoutes);
+  updatePassageNavigation();
   if(view.expired||view.connectionLost){passageGeneration++;$('passage-result').replaceChildren(el('p','Passage information is out of date. Waiting for a fresh resource assessment.'));}
   $('units').value=view.units;
   $('summary').className=`summary tone-${view.tone}`;
@@ -71,7 +94,7 @@ async function loadRoutes(){
   try{
     const data=await passageFetch('/passage/routes');
     routesLoadedAt=Date.now();upstreamRoutes=data.routes;
-    $('passage').hidden=!EnduranceView.passageVisible(payload.display?.passageEnabled,upstreamRoutes);
+    updatePassageNavigation();
     if(!selectedPassage&&data.routes.some(r=>r.active))selectedPassage='@active';
     const options=[];
     if(!data.routes.some(r=>r.active)){const empty=el('option','Choose a saved route…');empty.value='';options.push(empty);}
@@ -79,7 +102,7 @@ async function loadRoutes(){
     if(selectedPassage&&!data.routes.some(r=>r.id===selectedPassage)){const missing=el('option',selectedPassage==='@active'?'Active route · none currently active':'Previously selected route · unavailable');missing.value=selectedPassage;options.push(missing);}
     $('passage-route').replaceChildren(...options);$('passage-route').value=selectedPassage;
     $('passage-route-note').textContent=data.routes.length?'Choosing a route here does not activate it in Freeboard.':'No saved routes found. Save or publish a route in Signal K first.';
-  }catch(error){upstreamRoutes=[];routesLoadedAt=Date.now();$('passage').hidden=true;}
+  }catch(error){upstreamRoutes=[];routesLoadedAt=Date.now();updatePassageNavigation();}
   finally{$('passage-routes-refresh').disabled=false;}
 }
 async function refreshPassage(){

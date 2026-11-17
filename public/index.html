@@ -10,16 +10,22 @@
 <div class="shell">
 <header class="masthead">
   <div class="brand"><img src="icon.png" alt="" width="56" height="56"><div><h1>Endurance</h1><p>Stop watching gauges. Go sailing.</p></div></div>
-  <nav aria-label="Dashboard controls"><label class="unit-picker"><span>Volumes</span><select id="units" aria-label="Displayed volume units"><option value="litres">Litres</option><option value="gallons">US gallons</option><option value="m3">m³</option></select></label><button id="refresh" type="button">Refresh</button><a href="/admin/#/serverConfiguration/plugins/signalk-endurance">Settings</a><span class="theme-controls" role="group" aria-label="Display theme"><button id="theme" type="button" class="theme-control" aria-label="Change display theme">☾</button><button id="theme-auto" type="button" aria-pressed="true" title="Follow vessel day/night and navigation state">Auto</button></span></nav>
+  <nav id="view-navigation" aria-label="Dashboard views">
+    <button type="button" aria-controls="resources-view" aria-pressed="true">Your Resources</button>
+    <button type="button" aria-controls="passage" aria-pressed="false" hidden>Passage Readiness</button>
+  </nav>
+  <nav class="dashboard-controls" aria-label="Dashboard controls"><label class="unit-picker"><span>Volumes</span><select id="units" aria-label="Displayed volume units"><option value="litres">Litres</option><option value="gallons">US gallons</option><option value="m3">m³</option></select></label><button id="refresh" type="button">Refresh</button><a href="/admin/#/serverConfiguration/plugins/signalk-endurance">Settings</a><span class="theme-controls" role="group" aria-label="Display theme"><button id="theme" type="button" class="theme-control" aria-label="Change display theme">☾</button><button id="theme-auto" type="button" aria-pressed="true" title="Follow vessel day/night and navigation state">Auto</button></span></nav>
 </header>
 <main>
-  <section id="summary" class="summary tone-neutral" aria-labelledby="summary-title">
-    <div class="summary-copy"><p class="eyebrow" id="summary-label">YOUR BOAT, AT A GLANCE</p><h2 id="summary-title">Connecting to your boat…</h2><p id="summary-message">Waiting for the latest resource assessment.</p></div>
-    <div class="summary-meta"><span id="mode" class="mode" hidden>Preview</span><p id="coverage">—</p><p id="updated">Not yet updated</p></div>
-  </section>
   <div id="connection" class="notice" role="status" aria-live="polite" hidden></div>
-<section id="attention" class="attention" aria-label="Resources needing attention" hidden><h2>Needs your attention</h2><ul id="attention-list"></ul></section>
-  <section aria-labelledby="resources-title"><div class="section-heading"><h2 id="resources-title">Your Resources</h2><span id="notification-note"></span></div><div id="resources" class="resources"></div></section>
+  <div id="resources-view">
+    <section id="summary" class="summary tone-neutral" aria-labelledby="summary-title">
+      <div class="summary-copy"><p class="eyebrow" id="summary-label">YOUR BOAT, AT A GLANCE</p><h2 id="summary-title">Connecting to your boat…</h2><p id="summary-message">Waiting for the latest resource assessment.</p></div>
+      <div class="summary-meta"><span id="mode" class="mode" hidden>Preview</span><p id="coverage">—</p><p id="updated">Not yet updated</p></div>
+    </section>
+    <section id="attention" class="attention" aria-label="Resources needing attention" hidden><h2>Needs your attention</h2><ul id="attention-list"></ul></section>
+    <section aria-labelledby="resources-title"><div class="section-heading"><h2 id="resources-title">Your Resources</h2><span id="notification-note"></span></div><div id="resources" class="resources"></div></section>
+  </div>
   <section id="passage" class="passage-section" hidden aria-labelledby="passage-title">
     <div class="section-heading"><h2 id="passage-title">Passage Readiness</h2></div>
     <div class="passage-panel">

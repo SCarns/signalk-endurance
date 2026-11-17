@@ -1,3 +1,7 @@
+## 2.5.0
+
+- Open Endurance in Your Resources and use the header to switch to the dedicated Passage Readiness view when passage estimates are available. Keep the selected route and engine plan when switching views.
+
 ## 2.3.0
 
 - Show projected arrival SOC alongside the lowest forecast SOC. Arrival requires forecast coverage through the end of the planned duration.
