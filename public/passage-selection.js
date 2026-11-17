@@ -2,7 +2,7 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.EndurancePassageSelection=factory();})(globalThis,function(){
   function read(storage,defaultRoute=''){
     let routeId=defaultRoute,fuelBasis='route-profile';
-    try{routeId=storage.getItem('endurance.passage.route')||defaultRoute;if(storage.getItem('endurance.passage.fuelBasis')==='full-duration')fuelBasis='full-duration';}catch{}
+    try{routeId=storage.getItem('endurance.passage.route')||defaultRoute;const saved=storage.getItem('endurance.passage.fuelBasis');if(['full-duration','motor-full'].includes(saved))fuelBasis=saved;}catch{}
     return {routeId,fuelBasis};
   }
   function query(routeId,fuelBasis,pbFuel){

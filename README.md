@@ -439,15 +439,15 @@ Signal K object is `environment.endurancePreview.passage` in preview mode or
   demand; `0` (default) uses automatic source selection described below. This does not
   replace your engine's live Signal K rate, standalone fuel endurance or alerts.
   An engine-stopped live rate of zero cannot establish future motoring fuel use.
-  The dashboard's **Fuel allowance** choice can instead budget engine use for
-  the **full planned duration**. This multiplies the same burn rate by total
-  upstream passage time and still retains your fuel reserve. It leaves the
-  sailing forecast, arrival time, water demand and energy forecast unchanged.
-  It is a conservative fuel scenario relative to that plan's motoring allocation,
-  not a verified all-motor ETA or a guarantee against a longer passage. Choose a
-  suitably conservative burn rate for your intended engine use. The allowance is
-  remembered in this browser and does not change navigation or the background
-  published passage assessment, which continues using upstream motoring hours.
+  In **Passage engine plan**, **Budget fuel for the full passage** budgets the
+  full saved duration at the selected burn rate. **Plan to motor the full passage**
+  also estimates engine charging when house-bank capacity (Wh), sustained engine
+  charging output (W), and Energy Predictor's hourly detected net energy are
+  available. Enter charging power delivered to the bank before house loads.
+  Both options use the saved duration and ETA. The Power card shows the lowest
+  forecast SOC and, when coverage reaches the end, projected arrival SOC.
+  The selection is remembered in this browser. Background passage assessments
+  use the route's predicted motoring hours.
   With automatic selection, the passage dashboard first uses a fresh positive
   live rate. If none is available, it tries Passage Brief's configured
   `motor_fuel_l_per_hour` through its existing `/api/config` endpoint. This requires

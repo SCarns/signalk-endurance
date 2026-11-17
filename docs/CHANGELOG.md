@@ -1,3 +1,8 @@
+## 2.3.0
+
+- Show projected arrival SOC alongside the lowest forecast SOC. Arrival requires forecast coverage through the end of the planned duration.
+- Separate budgeting fuel for the full passage from planning to motor throughout. The motoring plan can include sustained house-bank charging using the configured watts and bank capacity in Wh.
+
 ## 2.2.2
 
 - Accept the obsolete saved `passage.routeId` during configuration validation, then remove it when migrating and saving settings. Preserve valid passage, resource, unit, and notification settings so upgrades do not require resetting configuration.

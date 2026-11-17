@@ -44,7 +44,8 @@ async function refreshPassage(payload,units){
     if(text.routeName)passage.append(node('p',text.routeName));
     passage.append(node('h3',text.title),node('p',text.message));
     if(p.route){passage.append(node('small',text.context));
-      if(selected.fuelBasis==='full-duration')passage.append(node('small','Fuel allowance: full planned duration'));
+      if(selected.fuelBasis==='motor-full')passage.append(node('small','Motoring for the full saved route duration'));
+      else if(selected.fuelBasis==='full-duration')passage.append(node('small','Fuel allowance: full planned duration'));
       else passage.append(node('small','Fuel allowance: route’s predicted motoring'));
     }
     if(p.estimateAvailable===true)passage.append(...EndurancePassageView.build(p,units).cards.map(card));

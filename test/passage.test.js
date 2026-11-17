@@ -202,3 +202,27 @@ test('Course API route switch during resource retrieval discards old result',asy
   const provider={getSelfPath:()=>undefined,getCourse:async()=>({activeRoute:{href:'/resources/routes/'+id}}),resourcesApi:{getResource:async()=>{id='b';return raw();}}};
   const reader=createRouteReader(provider);await reader.refresh({routeId:''});assert.equal(reader.current({routeId:''}).reason,'ROUTE_CHANGED');
 });
+
+test('planned motoring projects arrival independently of the low point and fuel allowance', () => {
+  const config = normalize({passage: {houseBankWh: 1000, engineChargeWatts: 200, fuelLitresPerHour: 2}});
+  const resources = {energy: {status: 'OK', input: {value: .811}}, fuel: supply()};
+  const forecast = [0, 1].map(hour => ({
+    time: iso(hour), detectedSoC: .811 - .1 * (hour + 1),
+    detectedNetWh: -100, alternatorWh: 200, idealSoC: 1
+  }));
+  const plan = (basis, provider = app(forecast), settings = config) =>
+    assessPassage(route(), resources, settings, provider, now, {fuelBasis: basis}).resources;
+  const motor = plan('motor-full');
+  assert.equal(motor.energy.minimumSOC, .811);
+  assert.equal(motor.energy.arrivalSOC, 1);
+  assert.equal(motor.fuel.requiredM3, .004);
+  const allowance = plan('full-duration');
+  assert.equal(allowance.energy.arrivalSOC, forecast[1].detectedSoC);
+  assert.equal(allowance.fuel.requiredM3, motor.fuel.requiredM3);
+  assert.deepEqual(plan('motor-full', app(forecast), normalize()).energy, allowance.energy);
+  assert.equal(plan('motor-full', app(forecast, 1.5)).energy.arrivalSOC, null);
+  assert.equal(plan('motor-full', app(forecast, 1.5)).energy.coveredSeconds, 5400);
+  const partial = {...route(), durationSeconds: 1800, arrival: iso(.5)};
+  const half = assessPassage(partial, resources, config, app(forecast), now, {fuelBasis:'motor-full'});
+  assert.ok(Math.abs(half.resources.energy.arrivalSOC - .861) < 1e-10);
+});

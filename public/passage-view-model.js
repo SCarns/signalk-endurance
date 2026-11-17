@@ -14,6 +14,8 @@
       if(key==='energy'){
         if(finite(r.minimumSOC)&&r.minimumSOC>=0&&r.minimumSOC<=1)c.metric={value:(r.minimumSOC*100).toFixed(1),unit:'%'};
         c.label='Lowest forecast SOC';
+        c.facts.push({label:'Projected arrival SOC',value:percent(r.arrivalSOC)});
+        if(finite(r.minimumSOC))c.facts.push({label:'Engine charging',value:r.chargingWatts>0?`Planned at ${r.chargingWatts} W`:'Planned engine charging excluded'});
         c.facts.push({label:'SOC reserve',value:percent(r.reserve)},{label:'Forecast covers',value:hours(r.coveredSeconds)});
         if(finite(r.uncoveredSeconds)&&r.uncoveredSeconds>0)c.facts.push({label:'Beyond forecast',value:hours(r.uncoveredSeconds)});
         if(r.forecastSource)c.facts.push({label:'Forecast source',value:r.forecastSource});

@@ -4,7 +4,7 @@ let selectedPassage='',passageGeneration=0,routesLoadedAt=0,upstreamRoutes=[];
 let passageFuelBasis='route-profile';
 try{const saved=EndurancePassageSelection.read(localStorage);selectedPassage=saved.routeId;passageFuelBasis=saved.fuelBasis;}catch{}
 $('passage-fuel-basis').value=passageFuelBasis;
-$('passage-fuel-note').hidden=passageFuelBasis!=='full-duration';
+$('passage-fuel-note').hidden=passageFuelBasis==='route-profile';
 let payload=null,displayUnits=null,pollTimer=null,busy=false,connectionError=null;
 let reserveCards=[];
 const readReserve=EnduranceReserve.createReader((url,options)=>fetch(url,options));
@@ -124,5 +124,5 @@ async function refreshPassage(){
   }catch(error){if(token===passageGeneration){$('passage-result').hidden=true;$('passage-result').replaceChildren();}}
 }
 $('passage-route').addEventListener('change',()=>{selectedPassage=$('passage-route').value;try{localStorage.setItem('endurance.passage.route',selectedPassage);}catch{}$('passage-result').hidden=true;$('passage-result').replaceChildren();void refreshPassage();});
-$('passage-fuel-basis').addEventListener('change',()=>{passageFuelBasis=$('passage-fuel-basis').value;try{localStorage.setItem('endurance.passage.fuelBasis',passageFuelBasis);}catch{}$('passage-fuel-note').hidden=passageFuelBasis!=='full-duration';$('passage-result').hidden=true;void refreshPassage();});
+$('passage-fuel-basis').addEventListener('change',()=>{passageFuelBasis=$('passage-fuel-basis').value;try{localStorage.setItem('endurance.passage.fuelBasis',passageFuelBasis);}catch{}$('passage-fuel-note').hidden=passageFuelBasis==='route-profile';$('passage-result').hidden=true;void refreshPassage();});
 $('passage-routes-refresh').addEventListener('click',()=>{void loadRoutes().then(()=>refreshPassage());});

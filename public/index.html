@@ -26,9 +26,9 @@
       <label for="passage-route">Choose a passage</label>
       <div class="passage-controls"><select id="passage-route"><option value="">Choose a saved route…</option></select><button id="passage-routes-refresh" type="button">Refresh routes</button></div>
       <p id="passage-route-note" class="card-note">Choosing a route here does not activate it in Freeboard.</p>
-      <label for="passage-fuel-basis">Fuel allowance</label>
-      <select id="passage-fuel-basis"><option value="route-profile">Route's predicted motoring</option><option value="full-duration">Engine use for the full planned duration</option></select>
-      <p id="passage-fuel-note" class="card-note" hidden>Budgets fuel for engine use throughout the existing passage duration. This is a planning allowance; the route's sailing forecast and arrival time stay unchanged. It does not establish an all-motor ETA.</p>
+      <label for="passage-fuel-basis">Passage engine plan</label>
+      <select id="passage-fuel-basis"><option value="route-profile">Route's predicted motoring</option><option value="full-duration">Budget fuel for the full passage</option><option value="motor-full">Plan to motor the full passage</option></select>
+      <p id="passage-fuel-note" class="card-note" hidden>Both full-passage options use the saved route duration and ETA. Engine charging is estimated only when you plan to motor.</p>
     </div>
     <div id="passage-result" aria-live="polite"></div>
   </section>

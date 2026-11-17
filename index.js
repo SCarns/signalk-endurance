@@ -112,7 +112,7 @@ module.exports = app => {
     viewer.get('/passage/assessment', async (req,res) => {
       if (!running || !config?.passage.enabled || !latest) return res.status(409).json({error:'Enable Passage Readiness in Settings.'});
       if (typeof req.query?.routeId !== 'string' || (req.query.routeId !== '@active' && !/^[\w:-]+$/.test(req.query.routeId))) return res.status(400).json({error:'Choose a saved route.'});
-      if (req.query.fuelBasis !== undefined && !['route-profile','full-duration'].includes(req.query.fuelBasis)) return res.status(400).json({error:'Choose a supported fuel allowance.'});
+      if (req.query.fuelBasis !== undefined && !['route-profile','full-duration','motor-full'].includes(req.query.fuelBasis)) return res.status(400).json({error:'Choose a supported fuel allowance.'});
       const rate=req.query.passageBriefFuelLitresPerHour,stamp=req.query.passageBriefFuelFetchedAt;
       let passageBriefFuel;
       if(rate!==undefined||stamp!==undefined){
