@@ -31,22 +31,24 @@ async function refreshPassage(payload,units){
   let storage;
   try{storage=localStorage;}catch{}
   const selected=EndurancePassageSelection.read(storage,'@active');
-  selectedPassageKey=JSON.stringify(selected);
+  const timing=selected.routeId==='@active'?null:EndurancePassageSelection.readTiming(storage,selected.routeId);
+  selectedPassageKey=JSON.stringify([selected,timing]);
   try{
     const pbFuel=await passageFuel.read();
-    const response=await fetch('/plugins/signalk-endurance'+EndurancePassageSelection.query(selected.routeId,selected.fuelBasis,pbFuel),{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(10000)});
+    const response=await fetch('/plugins/signalk-endurance'+EndurancePassageSelection.query(selected.routeId,selected.fuelBasis,pbFuel,timing),{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(10000)});
     if(!response.ok)throw Error('Passage assessment unavailable');
     const p=await response.json();
     const current=EndurancePassageSelection.read(storage,'@active');
-    if(stopped||JSON.stringify(current)!==selectedPassageKey)return;
+    const currentTiming=current.routeId==='@active'?null:EndurancePassageSelection.readTiming(storage,current.routeId);
+    if(stopped||JSON.stringify([current,currentTiming])!==selectedPassageKey)return;
     const text=EndurancePassageSelection.summary(p);
     passage.replaceChildren(node('h2','Passage readiness'));
     if(text.routeName)passage.append(node('p',text.routeName));
     passage.append(node('h3',text.title),node('p',text.message));
     if(p.route){passage.append(node('small',text.context));
-      if(selected.fuelBasis==='motor-full')passage.append(node('small','Motoring for the full saved route duration'));
+      if(selected.fuelBasis==='motor-full')passage.append(node('small','Motoring for the full trip duration'));
       else if(selected.fuelBasis==='full-duration')passage.append(node('small','Fuel allowance: full planned duration'));
-      else passage.append(node('small','Fuel allowance: route’s predicted motoring'));
+      else passage.append(node('small','Fuel allowance: route or entered engine hours'));
     }
     if(p.estimateAvailable===true)passage.append(...EndurancePassageView.build(p,units).cards.map(card));
   }catch{passage.replaceChildren(node('h2','Passage readiness'),node('p','Passage assessment unavailable. Open Endurance to check the selected passage.'));}

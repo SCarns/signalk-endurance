@@ -8,3 +8,15 @@
 .dashboard-controls{margin-left:auto}
 main>.notice{margin:0 0 16px}
 @media(max-width:580px){.dashboard-controls{margin-left:0}#view-navigation{margin-top:16px}}
+
+.planning-timing{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin:16px 0}
+.planning-timing label{min-width:0}
+.planning-timing input:not([type="checkbox"]){display:block;max-width:100%;font:inherit;padding:7px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink)}
+.planning-timing input[type="number"]{width:10em}
+.published-paths{margin-top:16px;overflow-wrap:anywhere}
+.published-paths summary{cursor:pointer}
+.published-paths dd{margin:0 0 8px;color:var(--muted)}
+
+.active-metrics{display:flex;gap:16px 24px;flex-wrap:wrap;margin:16px 0}
+.active-metrics dt{font-size:13px;color:inherit}
+.active-metrics dd{margin:0;font-size:20px;font-weight:650}

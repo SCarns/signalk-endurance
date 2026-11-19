@@ -405,27 +405,14 @@ configuration validator rejects them. Keep preview/live path selection consisten
 Completed passage-profile integration with Passage Brief remains future work;
 its configured fuel burn is available as the optional dashboard fallback below.
 
-## Passage Readiness — 2.0
+## Passage Readiness
 
 Passage Readiness asks whether the resources you monitor can cover a selected
 passage while retaining your configured reserves. It is optional and disabled by
-default. Existing Endurance assessments, alerts, duration estimates and decisions
-continue independently. Current route-profile support is limited to published
-Weather Router Plus estimates; the source and forecast limitations below apply.
+default. Enable `passage.enabled` in plugin configuration to open both
+Passage Readiness and Active Passage. Existing resource monitoring and alerts
+continue independently.
 
-Enable `passage.enabled` in plugin configuration. Choose a saved planning passage
-in the dashboard, or use the active route. Background Signal K passage publication
-follows the Course API (`app.getCourse().activeRoute`), with
-`navigation.course.activeRoute` fallback on older servers. For this increment, publish a Weather Router Plus route to Signal K
-Resources first. Endurance reads it through `app.resourcesApi.getResource('routes',
-id)`; it never requests a new route, chooses a route alternative, or changes the
-active route. Unsupported or absent route metadata produces an unknown result.
-The dashboard shows Passage Readiness separately from the existing assessment.
-Its full-width passage summary shows the overall outlook, duration, navigation
-context and current position. Individual Power, Freshwater, Fuel and other enabled
-resource cards below it show the relevant demand, reserves, source and forecast
-coverage. Missing estimates stay explicitly unavailable; these cards do not change
-the underlying assessment or alerts.
 The plugin's `/assessment` endpoint includes `assessment.passage`; the corresponding
 Signal K object is `environment.endurancePreview.passage` in preview mode or
 `environment.endurance.passage` in live mode. Passage results do not raise alerts.
@@ -520,37 +507,44 @@ learned usage history are intentionally migrated by this release.
 
 ### Choose a passage from the dashboard
 
-The existing boat summary and **Your Resources** cards remain first. The separate
-**Passage Readiness** section below them has a saved-route dropdown. Enable
-Passage Readiness in Settings, then choose a route by name. When Signal K has an active route, **Active route**
-appears first, followed by all saved routes. With no remembered selection or
-configured route, Active route is selected by default. That choice follows changes
-to the active route; choosing a named route keeps that specific passage selected.
-If navigation stops, the active choice reports that no route is active instead of
-reusing the previous passage. Known saved distances
-appear in nautical miles. Use **Refresh routes** after saving or publishing a new
-route. Routes without supported passage estimates remain visible with an explanation.
+**Resources** opens by default. **Passage Readiness** lists every saved Signal K
+route. Choose a route and leave trip hours blank to use its saved timing. Endurance
+uses the Weather Router Plus sailing and motoring split when present, even if the
+original schedule has passed. The default departure is the saved future departure
+or now. Use **Apply timing** to choose a different departure or enter trip hours.
 
-Your dashboard selection is remembered in that browser. It assesses the selected
-route without activating it, modifying Freeboard, or changing another display's
-selection. With no saved planning selection, the active route is used when one is
-available. There is no route-ID override in Plugin Config. Existing saved overrides
-are ignored. Dashboard selection does not change background Signal K passage
-publication, which follows the active Course API route. Read-only viewers can use
-the picker.
+For a route without a timing profile, enter trip hours. Endurance assumes
+continuous motoring unless you enter engine hours. You can also enter total and
+engine hours from a Passage Brief simulation. The planning fuel rate can still
+fall back to Passage Brief's configured burn rate when available. Planning
+selections and timing are saved in the browser.
 
-For the selected passage, Endurance shows whether Signal K is following that same
-route, the next waypoint when the Course API reports it, direction when reversed,
-and fresh vessel coordinates when available. These are navigation context, not
-a calculated percentage complete or a map match. Resource demand continues to use
-the full route; remaining duration and remaining motor hours require an upstream
-remaining-passage profile before progress can reduce the estimate.
+## Active Passage
 
-Passage Readiness stays hidden when no saved route has usable upstream passage
-estimates. No manual time/speed fallback is requested. Saved routes remain in the
-selector whenever upstream estimates make the section available; choosing a route
-without estimates hides its assessment. Missing resource data or limited energy
-forecast coverage within a usable passage remain visible in its resource outlook.
+Active Passage follows the route selected in Signal K. It calculates remaining
+distance via the next waypoint and subsequent route legs. The ETA uses current
+speed made good toward the next waypoint as the assumed pace for the remaining
+distance. Fuel uses the configured live fuel rate and assumes continuous
+motoring for that time. Forecasts update as fresh inputs arrive. A lack of
+progress, stale navigation inputs, or missing route geometry makes the ETA
+unavailable. Configure the optional engine revolutions path to display RPM.
+
+The plugin publishes these fields in the background under
+`environment.endurance.activePassage` (or `environment.endurancePreview.activePassage`
+in preview). The webapp lists the exact paths and values under **Published to
+Signal K**.
+
+| Field | Meaning |
+| --- | --- |
+| `routeId` | Active Signal K route ID |
+| `assessedAt` | ISO timestamp of the estimate |
+| `arrival` | ISO projected arrival at current pace |
+| `fuelAtArrivalM3` | Projected fuel at arrival in cubic metres, floored at zero |
+| `fuelMarginM3` | Signed fuel surplus or shortfall against demand plus reserve, in cubic metres |
+
+Unavailable projections publish null values. Consumers can use the route ID and
+assessment timestamp to check that a projection still applies. This feature adds
+no navigation writes or alerts.
 
 ## Freeboard integration
 

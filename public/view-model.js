@@ -73,6 +73,5 @@
     });
     return {units:u,title,tone,message,cards,alerts,expired,connectionLost,running,preview:payload?.display?.preview===true,notifications:payload?.display?.notifications===true,timestamp:Number.isFinite(timestamp)?timestamp:null,coverage:running?`${monitored.length-unknown.length} of ${monitored.length} resources reporting`:'No active assessment'};
   }
-  function passageVisible(enabled,routes){return enabled===true && Array.isArray(routes) && routes.some(r=>r.profileAvailable===true);}
-  return {build,volume,duration,passageVisible};
+  return {build,volume,duration};
 });

@@ -3,6 +3,7 @@ const { schema, normalize } = require('./lib/config');
 const {migrateOptions}=require('./lib/input-units');
 const { discover, select } = require('./lib/discovery');
 const { listRoutes, passageView } = require('./lib/passage-view');
+const { activePassage, publication, fields: activeFields } = require('./lib/active-passage');
 const { createRouteReader, assessPassage } = require('./lib/passage');
 const { decide } = require('./lib/decision');
 const {WaterUsage}=require('./lib/water-usage');
@@ -12,6 +13,7 @@ const modules = Object.fromEntries(['energy', 'freshwater', 'fuel', 'propane', '
 module.exports = app => {
   const routeReader = createRouteReader(app);
   let waterUsage, store=null, lastSave=0, storageError=null;
+  let activeEstimate = null, activePending = false, lifecycle = 0;
   let timer, config, latest = null, discovery = {}, signature = null, running = false;
   const registerExtension = require('./lib/plotter-extension')(app, () => running && config?.enableFreeboard === true);
   const plugin = { id: 'signalk-endurance', name: 'Endurance', description: 'Stop watching gauges. Go sailing.', schema };
@@ -41,6 +43,29 @@ module.exports = app => {
     }
     app.handleMessage(plugin.id, { context: 'vessels.self', updates: [{ timestamp: new Date().toISOString(), values }] });
   }
+  function publishActive(estimate) {
+    app.handleMessage(plugin.id, { context: 'vessels.self', updates: [{
+      timestamp: new Date().toISOString(), values: publication(prefix(), estimate)
+    }] });
+  }
+  async function refreshActive(resources, now) {
+    if (activePending) return;
+    activePending = true;
+    const generation = lifecycle;
+    try {
+      let estimate;
+      try { estimate = await activePassage(app, resources, config, now); }
+      catch (error) {
+        estimate = { reason: 'ACTIVE_PASSAGE_UNAVAILABLE' };
+        app.debug?.(`Active Passage unavailable: ${error.message}`);
+      }
+      if (generation === lifecycle) {
+        publishActive(estimate);
+        activeEstimate = estimate;
+      }
+    } catch (error) { app.setPluginError(error.message); }
+    finally { if (generation === lifecycle) activePending = false; }
+  }
   function tick() {
     if (!running) return;
     try {
@@ -62,6 +87,7 @@ module.exports = app => {
         }
       }
       publish(latest);
+      if (config.passage.enabled) void refreshActive(resources, now);
       if(waterUsage?.dirty && now-lastSave>=300000)saveUsage(now);
       app.setPluginStatus(`${latest.status}: ${latest.message} (${latest.coverage.valid}/${latest.coverage.monitored} resources; ${config.publishLive ? 'live' : 'preview'})`);
     } catch (error) { app.setPluginError(error.message); }
@@ -89,11 +115,19 @@ module.exports = app => {
     app.handleMessage(plugin.id, { updates: [{ meta: Object.keys(modules).filter(k=>k !== 'energy').flatMap(k => ['capacityM3', 'currentVolumeM3', 'availableVolumeM3', 'freeVolumeM3', 'levelRatio'].map(field => ({ path: `${base}.resources.${k}.totals.${field}`, value: { units: field === 'levelRatio' ? 'ratio' : 'm3', description: field === 'levelRatio' ? 'Combined current volume divided by combined full capacity' : 'Combined tank volume in cubic metres; null if incomplete' } }))) }] });
     app.handleMessage(plugin.id,{updates:[{meta:[{path:`${base}.resources.freshwater.consumptionRate`,value:{units:'m3/s',description:'Estimated total freshwater usage rate; inspect rateSource for default, learning, learned or external'}}]}]});
     app.handleMessage(plugin.id,{updates:[{meta:[{path:`${base}.estimatedDays`,value:{units:'d',description:'Convenience conversion of authoritative time in seconds; null when unavailable'}},...Object.keys(modules).map(k=>({path:`${base}.resources.${k}.estimatedDays`,value:{units:'d',description:k === 'fuel' ? 'Engine running days to empty: engineTime / 86400; excluded from calendar endurance' : 'Convenience conversion of authoritative resource time / 86400; null when unavailable'}})),{path:`${base}.resources.fuel.engineTime`,value:{units:'s',description:'Engine running duration at the selected fuel rate, to empty; excluded from calendar endurance'}},{path:`${base}.resources.fuel.consumptionRate`,value:{units:'m3/s',description:'Selected total fuel consumption rate'}}]}]});
+    if (config.passage.enabled) {
+      app.handleMessage(plugin.id, { updates: [{ meta: Object.entries(activeFields).map(([key, value]) =>
+        ({ path: `${base}.activePassage.${key}`, value })) }] });
+    }
     tick();
     timer = setInterval(tick, config.intervalSeconds * 1000);
   };
   plugin.stop = () => {
+    lifecycle++;
+    activePending = false;
+    activeEstimate = null;
     saveUsage();
+    if (running && config?.passage.enabled) publishActive(null);
     if (running && config?.passage.enabled) app.handleMessage(plugin.id, { context: 'vessels.self', updates: [{ timestamp: new Date().toISOString(), values: [{ path: `${prefix()}.passage`, value: null }] }] });
     routeReader.reset();
     running = false;
@@ -104,7 +138,7 @@ module.exports = app => {
   plugin.registerWithRouter = router => {
     const viewer = typeof router.access === 'function' ? router.access('readonly') : router;
     const modeValue=path=>{const leaf=app.getSelfPath?.(path);const value=leaf?.value??leaf;return typeof value==='string'?value:null;};
-    viewer.get('/assessment', (_req, res) => res.json({ running, assessment: latest, display: { freeboardEnabled: running && config?.enableFreeboard === true, volumeUnits: config?.inputVolumeUnits || 'litres', environmentMode: modeValue('environment.mode'), navigationState: modeValue('navigation.state'), intervalSeconds: config?.intervalSeconds || 10, preview: !config?.publishLive, notifications: !!config?.publishLive && !!config?.notifications, passageEnabled: !!config?.passage.enabled } }));
+    viewer.get('/assessment', (_req, res) => res.json({ running, assessment: latest, activePassage: activeEstimate, activePassagePaths: config?.passage.enabled ? publication(prefix(), activeEstimate) : [], display: { freeboardEnabled: running && config?.enableFreeboard === true, volumeUnits: config?.inputVolumeUnits || 'litres', environmentMode: modeValue('environment.mode'), navigationState: modeValue('navigation.state'), intervalSeconds: config?.intervalSeconds || 10, preview: !config?.publishLive, notifications: !!config?.publishLive && !!config?.notifications, passageEnabled: !!config?.passage.enabled } }));
     viewer.get('/passage/routes', async (_req,res) => {
       if (!running || !config?.passage.enabled) return res.status(409).json({error:'Enable Passage Readiness in Settings.'});
       try { res.json({routes:await listRoutes(app)}); } catch(error) { res.status(503).json({error:error.message}); }
@@ -119,7 +153,24 @@ module.exports = app => {
         if(typeof rate!=='string'||!rate.trim()||!Number.isFinite(Number(rate))||Number(rate)<=0||typeof stamp!=='string'||!Number.isFinite(Date.parse(stamp)))return res.status(400).json({error:'Invalid Passage Brief planning fuel setting.'});
         passageBriefFuel={litresPerHour:Number(rate),fetchedAt:stamp};
       }
-      try { res.json(await passageView(app,req.query.routeId,latest,config,Date.now(),{fuelBasis:req.query.fuelBasis,passageBriefFuel})); } catch(error) { res.status(503).json({error:error.message}); }
+      const now = Date.now();
+      const { planning, departureAt, durationHours, motorHours } = req.query;
+      const departure = typeof departureAt === 'string' && departureAt !== 'now' ? Date.parse(departureAt) : undefined;
+      const hours = typeof durationHours === 'string' && durationHours.trim() ? Number(durationHours) : NaN;
+      const motor = typeof motorHours === 'string' && motorHours.trim() ? Number(motorHours) : NaN;
+      const full = ['full-duration', 'motor-full'].includes(req.query.fuelBasis);
+      if (planning === 'true' && (
+        (departureAt !== undefined && departureAt !== 'now' &&
+          (!Number.isFinite(departure) || departure < now - 60000 || departure > now + 366 * 86400000)) ||
+        (durationHours === undefined && motorHours !== undefined) ||
+        (durationHours !== undefined && (!(hours > 0 && hours <= 8760) ||
+          (!full && motorHours !== undefined && !(motor >= 0 && motor <= hours))))
+      )) return res.status(400).json({error:'Enter a future departure, a positive trip duration and engine hours within the trip duration.'});
+      const scenario = { fuelBasis: req.query.fuelBasis, passageBriefFuel, planning: planning === 'true',
+        departure: departureAt === 'now' ? now : departure === undefined ? undefined : Math.max(now, departure),
+        durationSeconds: Number.isFinite(hours) ? hours * 3600 : undefined,
+        motoringSeconds: !full && Number.isFinite(motor) ? motor * 3600 : undefined };
+      try { res.json(await passageView(app,req.query.routeId,latest,config,now,scenario)); } catch(error) { res.status(503).json({error:error.message}); }
     });
     router.get('/discovery', (_req, res) => res.json({ running, candidates: discovery, configuration: config || null }));
   };

@@ -58,13 +58,6 @@ test('upstream visibility requires a current complete route profile, not healthy
  for(const invalid of [{...plan,status:'UNKNOWN'},{...plan,durationSeconds:0},{...plan,arrival:new Date(now-1).toISOString()},{...plan,departure:null}])assert.equal(usableEstimate(invalid,now),false);
  const view=await passageView(app(),'a',{resources:{}},normalize(),now);assert.equal(view.status,'UNKNOWN');assert.equal(view.estimateAvailable,true);
 });
-test('no upstream estimates leaves passage pane hidden without affecting resource cards',()=>{
- const {passageVisible,build}=require('../public/view-model');
- assert.equal(passageVisible(true,[]),false);assert.equal(passageVisible(true,[{profileAvailable:false}]),false);
- assert.equal(passageVisible(false,[{profileAvailable:true}]),false);assert.equal(passageVisible(true,[{profileAvailable:false},{profileAvailable:true}]),true);
- const view=build({running:true,assessment:{timestamp:new Date(now).toISOString(),status:'OK',resources:{energy:{status:'OK',input:{value:.9}}}},display:{}},null,now);
- assert.equal(view.cards.length,1);
-});
 test('view fuel scenario is isolated from shared configuration and other viewers',async()=>{
  const provider=app();const config=normalize({passage:{fuelLitresPerHour:1.8}});
  const original=structuredClone(config);
@@ -75,4 +68,31 @@ test('view fuel scenario is isolated from shared configuration and other viewers
  assert(full.resources.fuel.requiredM3>standard.resources.fuel.requiredM3);
  assert.deepEqual(full.route,standard.route);assert.deepEqual(config,original);
  assert.deepEqual(await passageView(provider,'a',assessment,config,now),standard);
+});
+
+test('planning rebases expired Weather Router Plus timing and preserves its engine split', async () => {
+ const provider=app();
+ provider.resourcesApi.getResource=async()=>({name:resource.name,feature:{properties:{
+   ...resource.feature.properties,departure:new Date(now-86400000).toISOString(),arrival:new Date(now-79200000).toISOString()
+ }}});
+ const config=normalize({passage:{fuelLitresPerHour:2}});
+ const assessment={resources:{fuel:{status:'OK',totals:{complete:true,capacityM3:1,currentVolumeM3:.8}}}};
+ const plan=await passageView(provider,'a',assessment,config,now,{planning:true});
+ assert.equal(plan.estimateAvailable,true);
+ assert.equal(plan.route.departure,new Date(now).toISOString());
+ assert.equal(plan.resources.fuel.requiredM3,.002);
+ const longer=await passageView(provider,'a',assessment,config,now,{planning:true,durationSeconds:14400});
+ assert.equal(longer.resources.fuel.requiredM3,.004);
+});
+
+test('manually timed routes can use a supplied engine split or default to full motoring', async () => {
+ const provider=app();
+ provider.resourcesApi.getResource=async()=>({name:'Manual route'});
+ const config=normalize({passage:{fuelLitresPerHour:2}});
+ const assessment={resources:{fuel:{status:'OK',totals:{complete:true,capacityM3:1,currentVolumeM3:.8}}}};
+ const plan=await passageView(provider,'b',assessment,config,now,{planning:true,durationSeconds:7200});
+ assert.equal(plan.estimateAvailable,true);
+ assert.equal(plan.resources.fuel.requiredM3,.004);
+ const mixed=await passageView(provider,'b',assessment,config,now,{planning:true,durationSeconds:7200,motoringSeconds:1800});
+ assert.equal(mixed.resources.fuel.requiredM3,.001);
 });

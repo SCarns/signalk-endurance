@@ -11,8 +11,9 @@
 <header class="masthead">
   <div class="brand"><img src="icon.png" alt="" width="56" height="56"><div><h1>Endurance</h1><p>Stop watching gauges. Go sailing.</p></div></div>
   <nav id="view-navigation" aria-label="Dashboard views">
-    <button type="button" aria-controls="resources-view" aria-pressed="true">Your Resources</button>
+    <button type="button" aria-controls="resources-view" aria-pressed="true">Resources</button>
     <button type="button" aria-controls="passage" aria-pressed="false" hidden>Passage Readiness</button>
+    <button type="button" aria-controls="active-passage" aria-pressed="false" hidden>Active Passage</button>
   </nav>
   <nav class="dashboard-controls" aria-label="Dashboard controls"><label class="unit-picker"><span>Volumes</span><select id="units" aria-label="Displayed volume units"><option value="litres">Litres</option><option value="gallons">US gallons</option><option value="m3">m³</option></select></label><button id="refresh" type="button">Refresh</button><a href="/admin/#/serverConfiguration/plugins/signalk-endurance">Settings</a><span class="theme-controls" role="group" aria-label="Display theme"><button id="theme" type="button" class="theme-control" aria-label="Change display theme">☾</button><button id="theme-auto" type="button" aria-pressed="true" title="Follow vessel day/night and navigation state">Auto</button></span></nav>
 </header>
@@ -32,11 +33,27 @@
       <label for="passage-route">Choose a passage</label>
       <div class="passage-controls"><select id="passage-route"><option value="">Choose a saved route…</option></select><button id="passage-routes-refresh" type="button">Refresh routes</button></div>
       <p id="passage-route-note" class="card-note">Choosing a route here does not activate it in Freeboard.</p>
+      <form id="passage-timing" class="planning-timing">
+        <label>Departure <input id="passage-departure" type="datetime-local"></label>
+        <label><input id="passage-depart-now" type="checkbox"> Depart now</label>
+        <label>Trip hours <input id="passage-duration" type="number" min="0.01" max="8760" step="any" placeholder="Use saved timing"></label>
+        <label id="passage-motor-label">Engine hours (optional) <input id="passage-motor-hours" type="number" min="0" max="8760" step="any" placeholder="Automatic"></label>
+        <button type="submit">Apply timing</button>
+      </form>
       <label for="passage-fuel-basis">Passage engine plan</label>
-      <select id="passage-fuel-basis"><option value="route-profile">Route's predicted motoring</option><option value="full-duration">Budget fuel for the full passage</option><option value="motor-full">Plan to motor the full passage</option></select>
-      <p id="passage-fuel-note" class="card-note" hidden>Both full-passage options use the saved route duration and ETA. Engine charging is estimated only when you plan to motor.</p>
+      <select id="passage-fuel-basis"><option value="route-profile">Use route or entered engine hours</option><option value="full-duration">Budget fuel for the full passage</option><option value="motor-full">Plan to motor the full passage</option></select>
+      <p id="passage-fuel-note" class="card-note" hidden>Both full-passage options use the entire trip duration. Engine charging is estimated only when you plan to motor.</p>
     </div>
     <div id="passage-result" aria-live="polite"></div>
+  </section>
+  <section id="active-passage" hidden aria-labelledby="active-passage-title">
+    <div class="section-heading"><h2 id="active-passage-title">Active Passage</h2></div>
+    <div id="active-passage-result"></div>
+    <details class="passage-panel published-paths">
+      <summary>Published to Signal K</summary>
+      <p id="active-publication-mode" class="card-note"></p>
+      <dl id="active-publication"></dl>
+    </details>
   </section>
 </main>
 <footer><span>Updates automatically</span><a href="https://github.com/SCarns/signalk-endurance#readme" target="_blank" rel="noopener noreferrer">Help &amp; documentation</a></footer>

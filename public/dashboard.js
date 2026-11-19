@@ -1,8 +1,9 @@
 'use strict';
 const $=id=>document.getElementById(id);
-let selectedPassage='',passageGeneration=0,routesLoadedAt=0,upstreamRoutes=[];
+let selectedPassage='',passageGeneration=0,routesLoadedAt=0;
+const routeTiming=new Map();
 let passageFuelBasis='route-profile';
-try{const saved=EndurancePassageSelection.read(localStorage);selectedPassage=saved.routeId;passageFuelBasis=saved.fuelBasis;}catch{}
+try{const saved=EndurancePassageSelection.read(localStorage);selectedPassage=saved.routeId==='@active'?'':saved.routeId;passageFuelBasis=saved.fuelBasis;}catch{}
 $('passage-fuel-basis').value=passageFuelBasis;
 $('passage-fuel-note').hidden=passageFuelBasis==='route-profile';
 let payload=null,displayUnits=null,pollTimer=null,busy=false,connectionError=null;
@@ -14,7 +15,7 @@ function el(tag,text,className){const node=document.createElement(tag);if(text!=
 const viewNavigation=$('view-navigation');
 const viewButtons=viewNavigation.querySelectorAll('button[aria-controls]');
 const resourcesButton=viewNavigation.querySelector('[aria-controls="resources-view"]');
-const passageButton=viewNavigation.querySelector('[aria-controls="passage"]');
+const passageButtons=[...viewButtons].filter(button=>button!==resourcesButton);
 function showView(selected){
   for(const button of viewButtons){
     const active=button===selected;
@@ -25,20 +26,24 @@ function showView(selected){
 for(const button of viewButtons)button.addEventListener('click',()=>showView(button));
 
 function updatePassageNavigation(){
-  const available=EnduranceView.passageVisible(payload?.display?.passageEnabled,upstreamRoutes);
-  if(!available&&passageButton.getAttribute('aria-pressed')==='true'){
-    const focusWasInPassage=document.activeElement===passageButton||$('passage').contains(document.activeElement);
-    showView(resourcesButton);
-    if(focusWasInPassage)resourcesButton.focus();
+  const available=payload?.display?.passageEnabled===true;
+  for(const button of passageButtons){
+    if(!available&&button.getAttribute('aria-pressed')==='true'){
+      const panel=$(button.getAttribute('aria-controls'));
+      const restoreFocus=button===document.activeElement||panel.contains(document.activeElement);
+      showView(resourcesButton);
+      if(restoreFocus)resourcesButton.focus();
+    }
+    button.hidden=!available;
   }
-  passageButton.hidden=!available;
 }
 
 function render(){
   if(!payload)return;
   const view=EnduranceView.build(payload,displayUnits,Date.now(),!!connectionError);
   updatePassageNavigation();
-  if(view.expired||view.connectionLost){passageGeneration++;$('passage-result').replaceChildren(el('p','Passage information is out of date. Waiting for a fresh resource assessment.'));}
+  renderActive(view);
+  if(view.expired||view.connectionLost){passageGeneration++;$('passage-result').hidden=false;$('passage-result').replaceChildren(el('p','Passage information is out of date. Waiting for a fresh resource assessment.'));}
   $('units').value=view.units;
   $('summary').className=`summary tone-${view.tone}`;
   $('summary-title').textContent=view.title;$('summary-message').textContent=view.message;
@@ -70,7 +75,7 @@ async function refresh(){
     if(!response.ok)throw Error(response.status===401||response.status===403?'Sign in to Signal K to view Endurance.':`Cannot read Endurance right now (${response.status}).`);
     payload=await response.json();connectionError=null;
     void readReserve().then(cards=>{reserveCards=cards;render();});window.EnduranceTheme?.update(payload.display);render();
-    if(payload.display?.passageEnabled)void refreshPassage();
+    if(payload.running&&payload.display?.passageEnabled&&!EnduranceView.build(payload,displayUnits).expired)void refreshPassage();
     clearTimeout(pollTimer);pollTimer=setTimeout(refresh,Math.max(5000,Math.min(60000,(payload.display?.intervalSeconds||10)*1000)));
   }catch(error){
     connectionError=error.name==='AbortError'?'The server did not respond. Retrying shortly.':error.message;
@@ -93,18 +98,31 @@ async function loadRoutes(){
   $('passage-routes-refresh').disabled=true;
   try{
     const data=await passageFetch('/passage/routes');
-    routesLoadedAt=Date.now();upstreamRoutes=data.routes;
-    updatePassageNavigation();
-    if(!selectedPassage&&data.routes.some(r=>r.active))selectedPassage='@active';
-    const options=[];
-    if(!data.routes.some(r=>r.active)){const empty=el('option','Choose a saved route…');empty.value='';options.push(empty);}
-    for(const route of data.routes){const option=el('option',route.name+(typeof route.distanceM==='number'?' · '+(route.distanceM/1852).toFixed(1)+' nm':'')+(route.profileAvailable?'':' · passage estimates unavailable'));option.value=route.id;options.push(option);}
-    if(selectedPassage&&!data.routes.some(r=>r.id===selectedPassage)){const missing=el('option',selectedPassage==='@active'?'Active route · none currently active':'Previously selected route · unavailable');missing.value=selectedPassage;options.push(missing);}
+    routesLoadedAt=Date.now();
+    const routes=data.routes.filter(route=>!route.active);
+    const empty=el('option','Choose a saved route…');empty.value='';
+    const options=[empty];
+    for(const route of routes){
+      const option=el('option',route.name+(typeof route.distanceM==='number'?' · '+(route.distanceM/1852).toFixed(1)+' nm':'')+(route.profileAvailable?'':' · enter trip hours'));
+      option.value=route.id;options.push(option);
+    }
+    if(selectedPassage&&!routes.some(route=>route.id===selectedPassage)){
+      const missing=el('option','Previously selected route · unavailable');missing.value=selectedPassage;options.push(missing);
+    }
     $('passage-route').replaceChildren(...options);$('passage-route').value=selectedPassage;
-    $('passage-route-note').textContent=data.routes.length?'Choosing a route here does not activate it in Freeboard.':'No saved routes found. Save or publish a route in Signal K first.';
-  }catch(error){upstreamRoutes=[];routesLoadedAt=Date.now();updatePassageNavigation();}
+    $('passage-route-note').textContent=routes.length?'Leave trip hours blank to use saved timing. Engine hours use the saved split when available and otherwise assume full motoring.':'No saved routes found. Save or publish a route in Signal K first.';
+  }catch(error){routesLoadedAt=Date.now();$('passage-route-note').textContent=error.message;}
   finally{$('passage-routes-refresh').disabled=false;}
 }
+function selectedTiming(){
+  if(!routeTiming.has(selectedPassage)){
+    let timing={};
+    try{timing=EndurancePassageSelection.readTiming(localStorage,selectedPassage);}catch{}
+    routeTiming.set(selectedPassage,timing);
+  }
+  return routeTiming.get(selectedPassage);
+}
+
 async function refreshPassage(){
   const token=++passageGeneration;
   if(!$('passage-route').dataset.loaded){$('passage-route').dataset.loaded='true';await loadRoutes();}
@@ -114,38 +132,112 @@ async function refreshPassage(){
   try{
     const pbFuel=await passageBriefFuel.read();
     if(token!==passageGeneration)return;
-    const p=await passageFetch(EndurancePassageSelection.query(selectedPassage,passageFuelBasis,pbFuel));
+    const p=await passageFetch(EndurancePassageSelection.query(selectedPassage,passageFuelBasis,pbFuel,selectedTiming()));
     if(token!==passageGeneration)return;
-    const labels={UNKNOWN:'More information needed',SHORTFALL:'Projected shortfall',PROVISIONAL:'Provisional outlook',SUFFICIENT:'Monitored resources cover this passage'};
-    const reasons={NO_ACTIVE_ROUTE:'No route is currently active in Signal K. Choose a saved route to plan a passage.',UNSUPPORTED_ROUTE:'This route has no supported passage profile. Publish a Weather Router Plus result to add sailing and motoring estimates.',ROUTE_ENDED_OR_UNDATED:'The route schedule has ended or is undated. Update its passage estimates.',CONSUMPTION_UNAVAILABLE:'Consumption estimate unavailable',FORECAST_HORIZON:'Passage extends beyond the energy forecast',ROUTE_LOADS_UNVERIFIED:'Route-specific electrical loads are not verified',INCOMPLETE_SUPPLY:'Supply data is incomplete',NO_FORECAST_COVERAGE:'No forecast coverage for this passage',FORECAST_UNAVAILABLE:'Energy forecast unavailable'};
-    const result=$('passage-result');result.hidden=p.estimateAvailable!==true;
-    if(result.hidden){result.replaceChildren();return;}
+    const wording=EndurancePassageSelection.summary(p);
+    const result=$('passage-result');result.hidden=false;
+    if(p.estimateAvailable!==true){
+      result.replaceChildren(el('p','Enter trip hours to estimate resources for this route. Engine hours are optional.'));
+      return;
+    }
     const view=EndurancePassageView.build(p,$('units').value);
     const summary=el('article',undefined,`summary passage-summary tone-${view.tone}`);
     summary.setAttribute('aria-label','Passage summary');
     const copy=el('div',undefined,'summary-copy');
-    copy.append(el('p',p.route?.name||'THIS PASSAGE','eyebrow'),el('h3',labels[p.status]||p.status),el('p',reasons[p.reason]||p.message||'Passage information unavailable.'));
-    if(p.route?.durationSeconds!==undefined)copy.append(el('p',`${(p.route.durationSeconds/3600).toFixed(1)} hours total · ${(p.route.sailingSeconds/3600).toFixed(1)} sailing · ${(p.route.motoringSeconds/3600).toFixed(1)} motoring`));
-    const nav=p.navigation;
-    if(nav){let text=nav.following?'Following this route in Signal K':'Planning only · this route is not active in Signal K';
-      if(nav.following&&nav.nextWaypointIndex!==null)text+=` · next waypoint ${nav.nextWaypointIndex+1}${nav.waypointCount?' of '+nav.waypointCount:''}${nav.reverse?' · reverse direction':''}`;
-      copy.append(el('p',text));
-      if(nav.vesselPosition)copy.append(el('p',`Boat position: ${nav.vesselPosition.latitude.toFixed(4)}, ${nav.vesselPosition.longitude.toFixed(4)}`));
+    copy.append(el('p',p.route?.name||'THIS PASSAGE','eyebrow'),el('h3',wording.title),el('p',wording.message));
+    if(p.route?.durationSeconds!==undefined){
+      const motor=passageFuelBasis==='route-profile'?p.route.motoringSeconds:p.route.durationSeconds;
+      copy.append(el('p',`${(p.route.durationSeconds/3600).toFixed(1)} hours total · ${(motor/3600).toFixed(1)} engine hours`));
+      copy.append(el('p',`Departure ${new Date(p.route.departure).toLocaleString()} · ${p.route.timingBasis==='manual'?'Entered timing':'Saved route timing'}`));
     }
     summary.append(copy);
-    const grid=el('div',undefined,'resources passage-resources');grid.setAttribute('aria-label','Passage resource outlook');
+    result.replaceChildren(summary,passageCards(view));
+    result.append(el('p','Planning uses the full trip and current supplies.','card-note'));
+  }catch(error){if(token===passageGeneration){$('passage-result').hidden=false;$('passage-result').replaceChildren(el('p',error.message));}}
+}
+function passageCards(view,active=false){
+  const grid=el('div',undefined,'resources passage-resources');grid.setAttribute('aria-label','Passage resource outlook');
     for(const c of view.cards){
       const card=el('article',undefined,'resource');card.setAttribute('aria-label',`Passage ${c.name}`);
       const heading=el('div',undefined,'card-heading');heading.append(el('h3',c.name),el('span',c.badge,`badge ${c.tone}`));
       const metric=el('div',c.metric.value,'metric');if(c.metric.unit)metric.append(el('span',c.metric.unit,'unit'));
-      card.append(heading,metric,el('p',c.label,'metric-label'));
+      const label=active&&c.key!=='energy'?c.label.replace('Planned','Remaining'):c.label;
+      card.append(heading,metric,el('p',label,'metric-label'));
       if(c.facts.length){const dl=el('dl',undefined,'facts');for(const f of c.facts){const fact=el('div',undefined,'fact');fact.append(el('dt',f.label),el('dd',f.value));dl.append(fact);}card.append(dl);}
       card.append(el('p',c.note,'card-note'));grid.append(card);
     }
-    result.replaceChildren(summary,grid);
-    result.append(el('p','Resource demand uses the full route. Waypoint position does not reduce the passage estimate.','card-note'));
-  }catch(error){if(token===passageGeneration){$('passage-result').hidden=true;$('passage-result').replaceChildren();}}
+  return grid;
 }
-$('passage-route').addEventListener('change',()=>{selectedPassage=$('passage-route').value;try{localStorage.setItem('endurance.passage.route',selectedPassage);}catch{}$('passage-result').hidden=true;$('passage-result').replaceChildren();void refreshPassage();});
-$('passage-fuel-basis').addEventListener('change',()=>{passageFuelBasis=$('passage-fuel-basis').value;try{localStorage.setItem('endurance.passage.fuelBasis',passageFuelBasis);}catch{}$('passage-fuel-note').hidden=passageFuelBasis==='route-profile';$('passage-result').hidden=true;void refreshPassage();});
+
+function renderActive(view){
+  const estimate=payload.activePassage;
+  const result=$('active-passage-result');
+  const stale=view.expired||view.connectionLost||!view.running||
+    (estimate?.assessedAt&&Date.now()-Date.parse(estimate.assessedAt)>Math.max(15000,(payload.display?.intervalSeconds||10)*2000));
+  const states={
+    NO_ACTIVE_ROUTE:'Activate a route in Signal K to monitor the passage.',
+    COURSE_CHANGED:'Course changed. Waiting for the next assessment.',
+    ROUTE_GEOMETRY_UNAVAILABLE:'Remaining route distance is unavailable. Check the active route and next waypoint.',
+    PROGRESS_UNAVAILABLE:'Waiting for fresh position and steady progress toward the next waypoint.',
+    ACTIVE_PASSAGE_UNAVAILABLE:'Active course information is unavailable.'
+  };
+  if(stale||!estimate?.arrival){
+    result.replaceChildren(el('p',stale?'Waiting for a fresh active-passage assessment.':states[estimate?.reason]||'Waiting for the first active-passage assessment.'));
+  }else{
+    const volume=(amount,signed=false)=>{
+      const v=EnduranceView.volume(Math.abs(amount??NaN),view.units);
+      return v?`${signed&&amount!==0?(amount<0?'−':'+'):''}${v.value} ${v.unit}`:'Unavailable';
+    };
+    const activeView=EndurancePassageView.build(estimate,view.units);
+    const summary=el('article',undefined,`summary passage-summary tone-${activeView.tone}`);
+    const copy=el('div',undefined,'summary-copy');
+    copy.append(el('p',estimate.route.name,'eyebrow'),el('h3','At current pace'));
+    const metrics=el('dl',undefined,'active-metrics');
+    for(const [label,value] of [
+      ['ETA',new Date(estimate.arrival).toLocaleString()],
+      ['Fuel at arrival',volume(estimate.fuelAtArrivalM3)],
+      ['Fuel margin vs. reserve',volume(estimate.fuelMarginM3,true)]
+    ]){
+      const fact=el('div');fact.append(el('dt',label),el('dd',value));metrics.append(fact);
+    }
+    const details=[`${(estimate.progressMps*3600/1852).toFixed(1)} kn toward next waypoint`,
+      `${(estimate.distanceM/1852).toFixed(1)} nm remaining`,`waypoint ${estimate.nextWaypoint} of ${estimate.waypointCount}`];
+    if(Number.isFinite(estimate.rpm))details.push(`${Math.round(estimate.rpm)} RPM`);
+    if(Number.isFinite(estimate.burnM3PerSecond))details.push(`${volume(estimate.burnM3PerSecond*3600)}/h`);
+    copy.append(metrics,el('p',details.join(' · ')),el('p','Fuel projection assumes continuous motoring at the current burn rate.'));
+    if(estimate.fuelAtArrivalM3===null)copy.append(el('p','Fuel projection needs a fresh burn rate and complete fuel tank readings.'));
+    summary.append(copy);
+    result.replaceChildren(summary,passageCards(activeView,true));
+  }
+  $('active-publication-mode').textContent=payload.display?.preview?'Preview paths':'Live paths';
+  const rows=[];
+  for(const {path,value} of payload.activePassagePaths||[]){
+    rows.push(el('dt',path),el('dd',stale||value===null?'Unavailable':String(value)+(path.endsWith('M3')?' m³':'')));
+  }
+  $('active-publication').replaceChildren(...rows);
+}
+
+function renderPlanInputs(){
+  const timing=selectedTiming();
+  $('passage-departure').value=timing?.departure||'';
+  $('passage-depart-now').checked=!!timing?.departNow;
+  $('passage-departure').disabled=!!timing?.departNow;
+  $('passage-duration').value=timing?.duration||'';
+  $('passage-motor-hours').value=timing?.motor||'';
+  $('passage-motor-label').hidden=passageFuelBasis!=='route-profile';
+}
+$('passage-depart-now').addEventListener('change',()=>{$('passage-departure').disabled=$('passage-depart-now').checked;});
+$('passage-timing').addEventListener('submit',event=>{
+  event.preventDefault();
+  if(!selectedPassage)return;
+  routeTiming.set(selectedPassage,{
+    departure:$('passage-departure').value,departNow:$('passage-depart-now').checked,
+    duration:$('passage-duration').value,motor:$('passage-motor-hours').value
+  });
+  try{localStorage.setItem('endurance.passage.timing.'+selectedPassage,JSON.stringify(selectedTiming()));}catch{}
+  void refreshPassage();
+});
+renderPlanInputs();
+$('passage-route').addEventListener('change',()=>{selectedPassage=$('passage-route').value;renderPlanInputs();try{localStorage.setItem('endurance.passage.route',selectedPassage);}catch{}$('passage-result').hidden=true;$('passage-result').replaceChildren();void refreshPassage();});
+$('passage-fuel-basis').addEventListener('change',()=>{passageFuelBasis=$('passage-fuel-basis').value;$('passage-motor-label').hidden=passageFuelBasis!=='route-profile';try{localStorage.setItem('endurance.passage.fuelBasis',passageFuelBasis);}catch{}$('passage-fuel-note').hidden=passageFuelBasis==='route-profile';$('passage-result').hidden=true;void refreshPassage();});
 $('passage-routes-refresh').addEventListener('click',()=>{void loadRoutes().then(()=>refreshPassage());});

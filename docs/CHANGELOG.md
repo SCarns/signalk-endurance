@@ -1,3 +1,9 @@
+## 2.6.0
+
+- Keep Resources, Passage Readiness and Active Passage in separate views.
+- Plan any saved route using saved or entered timing. Use the saved motoring split when available, or assume continuous motoring when no split is available. Enter engine hours from an external plan when needed.
+- Monitor ETA and remaining resource demand on the active route. Publish an at-current-pace ETA, estimated fuel at arrival, signed fuel margin, route ID and assessment timestamp to Signal K.
+
 ## 2.5.0
 
 - Open Endurance in Your Resources and use the header to switch to the dedicated Passage Readiness view when passage estimates are available. Keep the selected route and engine plan when switching views.
